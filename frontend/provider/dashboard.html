@@ -1,0 +1,171 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Provider Dashboard — CampusRide</title>
+  <link rel="stylesheet" href="../css/main.css">
+  <link rel="stylesheet" href="../css/dashboard.css">
+</head>
+<body>
+
+  <!-- Site Navigation Header -->
+  <header class="site-header">
+    <div class="header-container">
+      <a href="./dashboard.html" class="brand-link">
+        <span class="brand-icon">🚕</span>
+        <span>CampusRide</span>
+      </a>
+      <nav class="nav-actions">
+        <a href="./profile.html" class="nav-link">Provider Profile</a>
+        <button id="logoutBtn" class="btn btn-outline-danger btn-sm">
+          Log Out
+        </button>
+      </nav>
+    </div>
+  </header>
+
+  <!-- Dashboard Main Wrapper -->
+  <main class="dashboard-wrapper">
+    <!-- Greeting Card -->
+    <section class="greeting-card">
+      <span class="greeting-badge">Service Provider Portal</span>
+      <h1 class="greeting-title">Welcome, <span id="providerName">Provider</span></h1>
+      <p class="greeting-subtitle">Manage your transport availability, rates, and rider inquiries.</p>
+    </section>
+
+    <!-- Operational Stats Grid -->
+    <section class="stats-grid">
+      <!-- Provider Type -->
+      <div class="stat-card">
+        <span class="stat-label">Provider Type</span>
+        <span class="stat-value" id="providerType">Taxi Driver</span>
+        <span class="stat-note" id="providerVehicle">Registered vehicle</span>
+      </div>
+
+      <!-- Current Status -->
+      <div class="stat-card">
+        <span class="stat-label">Current Status</span>
+        <div style="margin-top: 0.25rem;">
+          <span id="providerStatusPill" class="status-pill status-available">Available</span>
+        </div>
+        <span class="stat-note">Visible to students</span>
+      </div>
+
+      <!-- Current Trip Price -->
+      <div class="stat-card">
+        <span class="stat-label">Standard Price</span>
+        <span class="stat-value" id="providerPrice" style="color: #d97706;">MWK 0</span>
+        <span class="stat-note">Per trip / student</span>
+      </div>
+
+      <!-- Estimated Waiting Time -->
+      <div class="stat-card">
+        <span class="stat-label">Est. Waiting Time</span>
+        <span class="stat-value" id="providerWaitTime">10 minutes</span>
+        <span class="stat-note">Average pickup time</span>
+      </div>
+    </section>
+
+    <!-- Provider Actions Grid -->
+    <section>
+      <div class="section-header">
+        <h2 class="section-title">Provider Management</h2>
+      </div>
+
+      <div class="actions-grid">
+        <!-- Edit Profile (Working Feature) -->
+        <div class="action-card" style="border-color: #f59e0b;">
+          <div>
+            <div class="action-card-header">
+              <div class="action-icon accent-amber">⚙️</div>
+              <div>
+                <h3 class="action-title">Provider Profile</h3>
+              </div>
+            </div>
+            <p class="action-desc">
+              Edit vehicle details, registration plate, trip price, waiting time, and availability.
+            </p>
+          </div>
+          <a href="./profile.html" class="btn btn-primary btn-block">
+            Edit Profile
+          </a>
+        </div>
+
+        <!-- My Schedule (Future Module) -->
+        <div class="action-card">
+          <div>
+            <div class="action-card-header">
+              <div class="action-icon accent-blue">🕒</div>
+              <div>
+                <h3 class="action-title">My Schedule</h3>
+              </div>
+            </div>
+            <p class="action-desc">
+              Configure daily operating hours and upcoming campus route departures.
+            </p>
+          </div>
+          <button id="myScheduleBtn" class="btn btn-secondary btn-block">
+            My Schedule
+          </button>
+        </div>
+
+        <!-- My Bookings (Future Module) -->
+        <div class="action-card">
+          <div>
+            <div class="action-card-header">
+              <div class="action-icon accent-green">📋</div>
+              <div>
+                <h3 class="action-title">My Bookings</h3>
+              </div>
+            </div>
+            <p class="action-desc">
+              View ride reservations, accept or decline trip requests from students.
+            </p>
+          </div>
+          <button id="myBookingsBtn" class="btn btn-secondary btn-block">
+            My Bookings
+          </button>
+        </div>
+
+        <!-- Update Price (Future Module) -->
+        <div class="action-card">
+          <div>
+            <div class="action-card-header">
+              <div class="action-icon">💰</div>
+              <div>
+                <h3 class="action-title">Update Price</h3>
+              </div>
+            </div>
+            <p class="action-desc">
+              Quickly adjust standard base fare or surcharge during peak campus hours.
+            </p>
+          </div>
+          <button id="updatePriceBtn" class="btn btn-secondary btn-block">
+            Update Price
+          </button>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <!-- Coming Soon Modal Dialog -->
+  <div id="comingSoonModal" class="modal-overlay" role="dialog" aria-modal="true">
+    <div class="modal-card">
+      <div class="modal-icon">🕒</div>
+      <h3 class="modal-title">Next Module Feature</h3>
+      <p id="modalFeatureText" class="modal-text">This feature will be available in the next module.</p>
+      <button id="closeModalBtn" class="btn btn-primary btn-block">
+        Understood
+      </button>
+    </div>
+  </div>
+
+  <footer class="site-footer">
+    <p>&copy; 2026 CampusRide Transport Booking App — Provider Portal</p>
+  </footer>
+
+  <!-- Provider Dashboard Script -->
+  <script type="module" src="../js/provider-dashboard.js"></script>
+</body>
+</html>

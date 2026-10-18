@@ -1,0 +1,91 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Find Transport — CampusRide</title>
+  <link rel="stylesheet" href="../css/main.css">
+  <link rel="stylesheet" href="../css/dashboard.css">
+  <link rel="stylesheet" href="../css/find-transport.css">
+</head>
+<body>
+
+  <!-- Site Navigation Header -->
+  <header class="site-header">
+    <div class="header-container">
+      <a href="./dashboard.html" class="brand-link">
+        <span class="brand-icon">🚕</span>
+        <span>CampusRide</span>
+      </a>
+      <nav class="nav-actions">
+        <a href="./dashboard.html" class="nav-link">← Dashboard</a>
+        <button id="logoutBtn" class="btn btn-outline-danger btn-sm">
+          Log Out
+        </button>
+      </nav>
+    </div>
+  </header>
+
+  <!-- Main Content Wrapper -->
+  <main class="dashboard-wrapper">
+    <!-- Header banner -->
+    <div class="search-header">
+      <h1 class="search-header-title">Find Available Transport</h1>
+      <p class="search-header-subtitle">
+        Browse verified campus taxi and motorbike drivers currently on duty.
+      </p>
+    </div>
+
+    <!-- Alert / Feedback Banner -->
+    <div id="alertBox" class="alert hidden" role="alert"></div>
+
+    <!-- Filter & Refresh Bar -->
+    <div class="filter-bar">
+      <div class="filter-group">
+        <span class="filter-label">Filter:</span>
+        <button type="button" class="filter-btn active" data-type="all">
+          All Services
+        </button>
+        <button type="button" class="filter-btn" data-type="taxi">
+          🚕 Taxis
+        </button>
+        <button type="button" class="filter-btn" data-type="motorbike">
+          🏍️ Motorbikes
+        </button>
+      </div>
+
+      <button type="button" id="refreshBtn" class="refresh-btn">
+        <span id="refreshIcon">🔄</span> Refresh Drivers
+      </button>
+    </div>
+
+    <!-- Dynamic Providers Grid Container -->
+    <div id="providersContainer">
+      <!-- Loading State (default) -->
+      <div id="loadingState" class="loading-box">
+        <div class="spinner"></div>
+        <p>Loading available drivers from Firestore...</p>
+      </div>
+
+      <!-- Providers Grid -->
+      <div id="providersGrid" class="providers-grid" style="display: none;"></div>
+
+      <!-- Empty State -->
+      <div id="emptyState" class="empty-state" style="display: none;">
+        <div class="empty-state-icon">📭</div>
+        <h3 class="empty-state-title">No drivers currently available</h3>
+        <p class="empty-state-desc">
+          There are no service providers available matching your filter right now. Check back soon or try another category.
+        </p>
+      </div>
+    </div>
+  </main>
+
+  <footer class="site-footer">
+    <p>&copy; 2026 CampusRide Transport Booking App — Student Portal</p>
+  </footer>
+
+  <!-- Script -->
+  <script type="module" src="../js/student/find-transport.js"></script>
+</body>
+</html>

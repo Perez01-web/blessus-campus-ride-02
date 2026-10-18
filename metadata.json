@@ -1,0 +1,6 @@
+{
+  "name": "Transport Booking App - Student & Provider Portal",
+  "description": "A full-stack transport booking web application connecting students with taxi and motorbike service providers.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}

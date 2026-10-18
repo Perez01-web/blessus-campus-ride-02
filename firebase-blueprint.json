@@ -1,0 +1,109 @@
+{
+  "entities": {
+    "User": {
+      "title": "User",
+      "description": "User profile document storing basic account and role info",
+      "type": "object",
+      "properties": {
+        "uid": {
+          "type": "string",
+          "description": "Firebase Authentication User ID"
+        },
+        "name": {
+          "type": "string",
+          "description": "User full name"
+        },
+        "email": {
+          "type": "string",
+          "description": "User email address"
+        },
+        "phone": {
+          "type": "string",
+          "description": "Contact phone number"
+        },
+        "role": {
+          "type": "string",
+          "enum": ["student", "provider"],
+          "description": "Account role"
+        },
+        "providerType": {
+          "type": "string",
+          "enum": ["taxi", "motorbike"],
+          "description": "Service vehicle type for providers"
+        },
+        "createdAt": {
+          "type": "string",
+          "description": "ISO timestamp of account creation"
+        }
+      },
+      "required": ["uid", "name", "email", "role", "createdAt"]
+    },
+    "Provider": {
+      "title": "Provider",
+      "description": "Transport provider operational details, pricing, vehicle, and status",
+      "type": "object",
+      "properties": {
+        "providerId": {
+          "type": "string",
+          "description": "Provider ID matching the user UID"
+        },
+        "userId": {
+          "type": "string",
+          "description": "User ID of the provider"
+        },
+        "name": {
+          "type": "string",
+          "description": "Provider display name"
+        },
+        "providerType": {
+          "type": "string",
+          "enum": ["taxi", "motorbike"],
+          "description": "Vehicle service type"
+        },
+        "phone": {
+          "type": "string",
+          "description": "Contact phone number"
+        },
+        "vehicleName": {
+          "type": "string",
+          "description": "Vehicle make and model"
+        },
+        "vehicleRegistration": {
+          "type": "string",
+          "description": "Registration plate number"
+        },
+        "price": {
+          "type": "number",
+          "description": "Standard trip price in MWK"
+        },
+        "estimatedWaitTime": {
+          "type": "number",
+          "description": "Average pickup wait time in minutes"
+        },
+        "available": {
+          "type": "boolean",
+          "description": "Current availability for rides"
+        },
+        "createdAt": {
+          "type": "string",
+          "description": "ISO timestamp of record creation"
+        },
+        "updatedAt": {
+          "type": "string",
+          "description": "ISO timestamp of record update"
+        }
+      },
+      "required": ["providerId", "userId", "name", "providerType", "price", "available", "createdAt", "updatedAt"]
+    }
+  },
+  "firestore": {
+    "/users/{uid}": {
+      "schema": "User",
+      "description": "Stores user profiles with role definitions"
+    },
+    "/providers/{providerId}": {
+      "schema": "Provider",
+      "description": "Stores provider vehicle, availability, and pricing details"
+    }
+  }
+}

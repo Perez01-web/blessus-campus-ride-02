@@ -1,0 +1,182 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Register — Transport Booking App</title>
+  <link rel="stylesheet" href="./css/main.css">
+  <link rel="stylesheet" href="./css/auth.css">
+</head>
+<body>
+
+  <!-- Site Header -->
+  <header class="site-header">
+    <div class="header-container">
+      <a href="./index.html" class="brand-link">
+        <span class="brand-icon">🚕</span>
+        <span>CampusRide</span>
+      </a>
+      <nav class="nav-actions">
+        <a href="./login.html" class="nav-link">Log In</a>
+      </nav>
+    </div>
+  </header>
+
+  <!-- Registration Form Wrapper -->
+  <main class="auth-wrapper">
+    <div class="auth-card">
+      <div class="auth-header">
+        <span class="auth-badge">Account Registration</span>
+        <h1 class="auth-title">Join CampusRide</h1>
+        <p class="auth-subtitle">Create your student or transport provider account</p>
+      </div>
+
+      <!-- Feedback / Alert Banner -->
+      <div id="alertBox" class="alert hidden" role="alert"></div>
+
+      <form id="registerForm" novalidate>
+        <!-- Account Type Selection (Student vs Service Provider) -->
+        <div class="form-group">
+          <label class="form-label">Select Account Type <span class="required">*</span></label>
+          <div class="role-selector-grid">
+            <label class="role-option active" id="roleStudentCard">
+              <input type="radio" name="accountType" value="student" checked>
+              <span class="role-icon">🎓</span>
+              <span class="role-name">Student</span>
+              <span class="role-desc">Seeking rides</span>
+            </label>
+
+            <label class="role-option" id="roleProviderCard">
+              <input type="radio" name="accountType" value="provider">
+              <span class="role-icon">🚗</span>
+              <span class="role-name">Service Provider</span>
+              <span class="role-desc">Offering rides</span>
+            </label>
+          </div>
+        </div>
+
+        <!-- Provider Type (Visible only when Service Provider is selected) -->
+        <div id="providerTypeContainer" class="provider-type-container hidden">
+          <label class="form-label" style="margin-bottom: 0.2rem;">
+            Transport Service Type <span class="required">*</span>
+          </label>
+          <p class="form-hint" style="margin-bottom: 0.5rem;">What vehicle will you operate?</p>
+          <div class="provider-type-grid">
+            <label class="type-option active" id="typeTaxiCard">
+              <input type="radio" name="providerType" value="taxi" checked>
+              <span class="type-icon">🚕</span>
+              <span class="type-name">Taxi Driver</span>
+            </label>
+
+            <label class="type-option" id="typeMotorbikeCard">
+              <input type="radio" name="providerType" value="motorbike">
+              <span class="type-icon">🛵</span>
+              <span class="type-name">Motorbike</span>
+            </label>
+          </div>
+        </div>
+
+        <!-- Full Name -->
+        <div class="form-group">
+          <label for="fullName" class="form-label">Full Name <span class="required">*</span></label>
+          <input 
+            type="text" 
+            id="fullName" 
+            class="form-control" 
+            placeholder="e.g. John Banda" 
+            required 
+            autocomplete="name"
+          >
+        </div>
+
+        <!-- Email Address -->
+        <div class="form-group">
+          <label for="email" class="form-label">Email Address <span class="required">*</span></label>
+          <input 
+            type="email" 
+            id="email" 
+            class="form-control" 
+            placeholder="e.g. john@example.com" 
+            required 
+            autocomplete="email"
+          >
+        </div>
+
+        <!-- Phone Number -->
+        <div class="form-group">
+          <label for="phone" class="form-label">Phone Number <span class="required">*</span></label>
+          <input 
+            type="tel" 
+            id="phone" 
+            class="form-control" 
+            placeholder="e.g. 0991234567" 
+            required 
+            autocomplete="tel"
+          >
+        </div>
+
+        <!-- Password -->
+        <div class="form-group">
+          <label for="password" class="form-label">Password <span class="required">*</span></label>
+          <input 
+            type="password" 
+            id="password" 
+            class="form-control" 
+            placeholder="At least 6 characters" 
+            required 
+            autocomplete="new-password"
+          >
+        </div>
+
+        <!-- Confirm Password -->
+        <div class="form-group">
+          <label for="confirmPassword" class="form-label">Confirm Password <span class="required">*</span></label>
+          <input 
+            type="password" 
+            id="confirmPassword" 
+            class="form-control" 
+            placeholder="Re-type your password" 
+            required 
+            autocomplete="new-password"
+          >
+        </div>
+
+        <!-- Submit Button -->
+        <button type="submit" id="submitBtn" class="btn btn-primary btn-block">
+          Create Account
+        </button>
+
+        <div style="display: flex; align-items: center; margin: 1.25rem 0; color: var(--text-muted); font-size: 0.85rem;">
+          <div style="flex: 1; height: 1px; background: var(--border-color);"></div>
+          <span style="padding: 0 0.75rem;">or</span>
+          <div style="flex: 1; height: 1px; background: var(--border-color);"></div>
+        </div>
+
+        <!-- Google Registration Button -->
+        <button type="button" id="googleBtn" class="btn btn-secondary btn-block" style="gap: 0.65rem;">
+          <svg width="18" height="18" viewBox="0 0 18 18">
+            <path fill="#4285F4" d="M17.64 9.2c0-.637-.057-1.251-.164-1.84H9v3.481h4.844c-.209 1.125-.843 2.078-1.796 2.717v2.258h2.908c1.702-1.567 2.684-3.874 2.684-6.616z"/>
+            <path fill="#34A853" d="M9 18c2.43 0 4.467-.806 5.956-2.184l-2.908-2.258c-.806.54-1.837.86-3.048.86-2.344 0-4.328-1.584-5.036-3.711H.957v2.332C2.438 15.983 5.482 18 9 18z"/>
+            <path fill="#FBBC05" d="M3.964 10.707c-.18-.54-.282-1.117-.282-1.707s.102-1.167.282-1.707V4.961H.957C.347 6.175 0 7.55 0 9s.347 2.825.957 4.039l3.007-2.332z"/>
+            <path fill="#EA4335" d="M9 3.58c1.321 0 2.508.454 3.44 1.345l2.582-2.58C13.463.891 11.426 0 9 0 5.482 0 2.438 2.017.957 4.961L3.964 7.293C4.672 5.166 6.656 3.58 9 3.58z"/>
+          </svg>
+          Continue with Google
+        </button>
+      </form>
+
+      <!-- Navigation Footer -->
+      <div class="auth-footer">
+        Already registered? 
+        <a href="./login.html">Sign in here</a>
+      </div>
+    </div>
+  </main>
+
+  <footer class="site-footer">
+    <p>&copy; 2026 CampusRide Transport Booking App</p>
+  </footer>
+
+  <!-- Register Script -->
+  <script type="module" src="./js/register.js"></script>
+</body>
+</html>

@@ -1,0 +1,65 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // Helper functions
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    function isOwner(userId) {
+      return isSignedIn() && request.auth.uid == userId;
+    }
+
+    // Default deny all
+    match /{document=**} {
+      allow read, write: if false;
+    }
+
+    // Users Collection: users/{uid}
+    match /users/{uid} {
+      // Users can read and manage their own user document
+      allow read: if isSignedIn() && (request.auth.uid == uid || resource.data.uid == request.auth.uid);
+      allow create: if isSignedIn() && request.auth.uid == uid && request.resource.data.uid == uid;
+      allow update: if isOwner(uid) && request.resource.data.uid == uid;
+      allow delete: if false;
+    }
+
+    // Providers Collection: providers/{providerId}
+    match /providers/{providerId} {
+      // Authenticated users (students & providers) can read provider profiles
+      allow read: if isSignedIn();
+      // Only the provider can create or update their own provider profile
+      allow create: if isOwner(providerId) && request.resource.data.providerId == providerId;
+      allow update: if isOwner(providerId) && request.resource.data.providerId == providerId;
+      allow delete: if false;
+    }
+
+    // Schedules Collection: schedules/{scheduleId}
+    match /schedules/{scheduleId} {
+      // Authenticated users can browse schedules
+      allow read: if isSignedIn();
+      // Providers can manage their own schedules
+      allow create: if isSignedIn() && request.resource.data.providerId == request.auth.uid;
+      allow update: if isSignedIn() && (resource.data.providerId == request.auth.uid || request.resource.data.providerId == request.auth.uid);
+      allow delete: if isSignedIn() && resource.data.providerId == request.auth.uid;
+    }
+
+    // Bookings Collection: bookings/{bookingId}
+    match /bookings/{bookingId} {
+      // Students can read their bookings, providers can read bookings for their service
+      allow read: if isSignedIn() && (
+        resource.data.studentId == request.auth.uid || 
+        resource.data.providerId == request.auth.uid
+      );
+      // Students create their bookings
+      allow create: if isSignedIn() && request.resource.data.studentId == request.auth.uid;
+      // Both student (to cancel) and provider (to accept/reject/complete) can update
+      allow update: if isSignedIn() && (
+        resource.data.studentId == request.auth.uid || 
+        resource.data.providerId == request.auth.uid
+      );
+      allow delete: if false;
+    }
+  }
+}
