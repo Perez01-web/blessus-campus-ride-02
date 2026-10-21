@@ -13,6 +13,7 @@ import dotenv from 'dotenv';
 
 import authRoutes from './routes/auth.routes.js';
 import providerRoutes from './routes/provider.routes.js';
+import bookingRoutes from './routes/booking.routes.js';
 
 // Load environment variables
 dotenv.config();
@@ -39,6 +40,7 @@ app.use((req, res, next) => {
 // 3. API Routes
 app.use('/api/auth', authRoutes);
 app.use('/api/provider', providerRoutes);
+app.use('/api/bookings', bookingRoutes);
 
 // Health check endpoint
 app.get('/api/health', (req, res) => {

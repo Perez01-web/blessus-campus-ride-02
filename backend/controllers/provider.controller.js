@@ -61,8 +61,9 @@ class ProviderController {
         });
       }
 
-      // If auth middleware is active, verify that user can only update their own profile
-      if (req.user && req.user.uid !== providerId) {
+      // The auth middleware guarantees req.user is set; the caller may only
+      // ever update their own provider profile.
+      if (!req.user || req.user.uid !== providerId) {
         return res.status(403).json({
           success: false,
           message: 'Unauthorized. You can only update your own provider profile.',

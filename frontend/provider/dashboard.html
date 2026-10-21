@@ -6,6 +6,7 @@
   <title>Provider Dashboard — CampusRide</title>
   <link rel="stylesheet" href="../css/main.css">
   <link rel="stylesheet" href="../css/dashboard.css">
+  <link rel="stylesheet" href="../css/bookings.css">
 </head>
 <body>
 
@@ -65,6 +66,31 @@
         <span class="stat-value" id="providerWaitTime">10 minutes</span>
         <span class="stat-note">Average pickup time</span>
       </div>
+
+      <!-- Ride Requests (live) -->
+      <div class="stat-card">
+        <span class="stat-label">Ride Requests</span>
+        <span class="stat-value" id="providerRequestsCount">0</span>
+        <span class="stat-note" id="providerRequestsNote">No pending requests</span>
+      </div>
+    </section>
+
+    <!-- Live Ride Requests -->
+    <section id="bookingsSection">
+      <div class="section-header">
+        <h2 class="section-title">Ride Requests</h2>
+        <span class="booking-count-badge is-zero" id="bookingCountBadge">0</span>
+      </div>
+
+      <div id="bookingsList" class="bookings-list"></div>
+
+      <div id="bookingsEmpty" class="empty-state" style="display: none;">
+        <div class="empty-state-icon">📭</div>
+        <h3 class="empty-state-title">No ride requests yet</h3>
+        <p class="empty-state-desc">
+          When a student books you, the request appears here instantly with the pickup time they chose.
+        </p>
+      </div>
     </section>
 
     <!-- Provider Actions Grid -->
@@ -110,8 +136,8 @@
           </button>
         </div>
 
-        <!-- My Bookings (Future Module) -->
-        <div class="action-card">
+        <!-- My Bookings (Live Feature) -->
+        <div class="action-card" style="border-color: #10b981;">
           <div>
             <div class="action-card-header">
               <div class="action-icon accent-green">📋</div>
@@ -124,7 +150,7 @@
             </p>
           </div>
           <button id="myBookingsBtn" class="btn btn-secondary btn-block">
-            My Bookings
+            View Ride Requests
           </button>
         </div>
 

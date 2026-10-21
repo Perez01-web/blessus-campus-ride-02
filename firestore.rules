@@ -47,18 +47,38 @@ service cloud.firestore {
 
     // Bookings Collection: bookings/{bookingId}
     match /bookings/{bookingId} {
-      // Students can read their bookings, providers can read bookings for their service
+      // The student who made the booking and the provider who received it
+      // can both read it. Queries are filtered on studentId or providerId,
+      // which is what makes these reads safe.
       allow read: if isSignedIn() && (
-        resource.data.studentId == request.auth.uid || 
+        resource.data.studentId == request.auth.uid ||
         resource.data.providerId == request.auth.uid
       );
-      // Students create their bookings
-      allow create: if isSignedIn() && request.resource.data.studentId == request.auth.uid;
-      // Both student (to cancel) and provider (to accept/reject/complete) can update
-      allow update: if isSignedIn() && (
-        resource.data.studentId == request.auth.uid || 
-        resource.data.providerId == request.auth.uid
-      );
+
+      // Only a signed-in student can create a booking, and only for
+      // themselves. New bookings always start as pending.
+      allow create: if isSignedIn()
+        && request.resource.data.studentId == request.auth.uid
+        && request.resource.data.status == 'pending'
+        && request.resource.data.providerId is string
+        && request.resource.data.pickupTime is string;
+
+      // The parties on a booking can never be swapped, and the agreed fare
+      // is locked once the request exists.
+      allow update: if isSignedIn()
+        && request.resource.data.studentId == resource.data.studentId
+        && request.resource.data.providerId == resource.data.providerId
+        && request.resource.data.fare == resource.data.fare
+        && (
+          // Students may only cancel their own request.
+          (resource.data.studentId == request.auth.uid
+            && request.resource.data.status == 'cancelled')
+          ||
+          // Providers may only move their own bookings to a final state.
+          (resource.data.providerId == request.auth.uid
+            && request.resource.data.status in ['accepted', 'rejected', 'completed'])
+        );
+
       allow delete: if false;
     }
   }

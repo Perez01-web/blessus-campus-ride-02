@@ -34,6 +34,7 @@ const targetDatabaseId = process.env.FIRESTORE_DATABASE_ID || appletConfig?.fire
 let firebaseAdminApp = null;
 let firestoreDb = null;
 let firebaseAuth = null;
+let hasServiceAccount = false;
 
 try {
   if (getApps().length === 0) {
@@ -47,11 +48,13 @@ try {
           privateKey: privateKey,
         }),
       });
+      hasServiceAccount = true;
       console.log('[Firebase Admin] Initialized with Service Account environment variables.');
     } else if (process.env.GOOGLE_APPLICATION_CREDENTIALS) {
       firebaseAdminApp = initializeApp({
         credential: applicationDefault(),
       });
+      hasServiceAccount = true;
       console.log('[Firebase Admin] Initialized with application default credentials.');
     } else {
       firebaseAdminApp = initializeApp({
@@ -61,13 +64,25 @@ try {
     }
   } else {
     firebaseAdminApp = getApps()[0];
+    hasServiceAccount = true;
   }
 
-  firestoreDb = targetDatabaseId 
-    ? getFirestore(firebaseAdminApp, targetDatabaseId) 
-    : getFirestore(firebaseAdminApp);
+  // Only hand out a Firestore handle when real credentials are available.
+  // Without them the Admin SDK cannot obtain an access token, and the
+  // resulting rejection is fatal to the Node process. Services fall back
+  // to their in-memory store when firestoreDb is null.
+  if (hasServiceAccount) {
+    firestoreDb = targetDatabaseId
+      ? getFirestore(firebaseAdminApp, targetDatabaseId)
+      : getFirestore(firebaseAdminApp);
+    console.log(`[Firebase Admin] Firestore ready (DB: ${targetDatabaseId || 'default'}).`);
+  } else {
+    console.warn('[Firebase Admin] No service account credentials found - running in LOCAL FALLBACK MODE.');
+    console.warn('[Firebase Admin] Backend Firestore is disabled; services will use their in-memory store.');
+  }
+
   firebaseAuth = getAuth(firebaseAdminApp);
-  console.log(`[Firebase Admin] Firestore and Auth services ready (DB: ${targetDatabaseId || 'default'}).`);
+  console.log('[Firebase Admin] Auth service ready.');
 } catch (error) {
   console.error('[Firebase Admin Error] Failed to initialize Firebase Admin SDK:', error.message);
 }

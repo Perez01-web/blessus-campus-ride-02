@@ -6,6 +6,7 @@
   <title>Student Dashboard — CampusRide</title>
   <link rel="stylesheet" href="../css/main.css">
   <link rel="stylesheet" href="../css/dashboard.css">
+  <link rel="stylesheet" href="../css/bookings.css">
 </head>
 <body>
 
@@ -81,7 +82,7 @@
         </div>
 
         <!-- My Bookings Action Card -->
-        <div class="action-card">
+        <div class="action-card" style="border-color: #0284c7;">
           <div>
             <div class="action-card-header">
               <div class="action-icon accent-blue">📅</div>
@@ -109,6 +110,32 @@
       <p id="modalFeatureText" class="modal-text">Coming in the next module.</p>
       <button id="closeModalBtn" class="btn btn-primary btn-block">
         Got it
+      </button>
+    </div>
+  </div>
+
+  <!-- My Bookings Modal Dialog -->
+  <div id="myBookingsModal" class="modal-overlay" role="dialog" aria-modal="true" aria-labelledby="myBookingsTitle">
+    <div class="modal-card booking-modal-card">
+      <div class="booking-modal-head">
+        <div class="modal-icon">📅</div>
+        <h3 class="modal-title" id="myBookingsTitle">My Bookings</h3>
+      </div>
+
+      <div id="myBookingsList" class="bookings-list"></div>
+
+      <div id="myBookingsEmpty" class="empty-state" style="display: none;">
+        <div class="empty-state-icon">🧾</div>
+        <h3 class="empty-state-title">No bookings yet</h3>
+        <p class="empty-state-desc">
+          Head to "Find Transport" and book a driver — your reservations will show up here.
+        </p>
+      </div>
+
+      <div id="myBookingsError" class="alert alert-danger hidden" role="alert"></div>
+
+      <button id="closeMyBookingsBtn" class="btn btn-secondary btn-block">
+        Close
       </button>
     </div>
   </div>

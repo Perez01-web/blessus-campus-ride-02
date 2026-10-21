@@ -94,6 +94,76 @@
         }
       },
       "required": ["providerId", "userId", "name", "providerType", "price", "available", "createdAt", "updatedAt"]
+    },
+    "Booking": {
+      "title": "Booking",
+      "description": "A ride request made by a student for a specific provider at a specific pickup time",
+      "type": "object",
+      "properties": {
+        "bookingId": {
+          "type": "string",
+          "description": "Unique booking identifier (also the document id)"
+        },
+        "studentId": {
+          "type": "string",
+          "description": "UID of the student who placed the booking"
+        },
+        "studentName": {
+          "type": "string",
+          "description": "Student display name at time of booking"
+        },
+        "studentPhone": {
+          "type": "string",
+          "description": "Student contact number"
+        },
+        "providerId": {
+          "type": "string",
+          "description": "UID of the booked provider"
+        },
+        "providerName": {
+          "type": "string",
+          "description": "Provider display name at time of booking"
+        },
+        "providerPhone": {
+          "type": "string",
+          "description": "Provider contact number so the student can call the driver"
+        },
+        "providerType": {
+          "type": "string",
+          "enum": ["taxi", "motorbike"],
+          "description": "Service type of the booked provider"
+        },
+        "vehicleName": {
+          "type": "string",
+          "description": "Vehicle of the booked provider"
+        },
+        "pickupTime": {
+          "type": "string",
+          "description": "ISO timestamp for the scheduled pickup"
+        },
+        "fare": {
+          "type": "number",
+          "description": "Agreed trip fare in MWK"
+        },
+        "estimatedWaitTime": {
+          "type": "number",
+          "description": "Provider average pickup wait time in minutes"
+        },
+        "status": {
+          "type": "string",
+          "enum": ["pending", "accepted", "rejected", "completed", "cancelled"],
+          "description": "Current booking status"
+        },
+        "createdAt": {
+          "type": "string",
+          "description": "ISO timestamp of booking creation"
+        },
+        "updatedAt": {
+          "type": "string",
+          "description": "ISO timestamp of last status change"
+        }
+      },
+      "required": ["bookingId", "studentId", "providerId", "pickupTime", "fare", "status", "createdAt", "updatedAt"]
     }
   },
   "firestore": {
@@ -104,6 +174,10 @@
     "/providers/{providerId}": {
       "schema": "Provider",
       "description": "Stores provider vehicle, availability, and pricing details"
+    },
+    "/bookings/{bookingId}": {
+      "schema": "Booking",
+      "description": "Stores ride requests linking a student to a provider at a scheduled pickup time"
     }
   }
 }
