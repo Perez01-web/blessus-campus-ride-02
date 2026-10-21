@@ -1,0 +1,209 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Find Transport — CampusRide</title>
+  <link rel="stylesheet" href="../css/main.css">
+  <link rel="stylesheet" href="../css/dashboard.css">
+  <link rel="stylesheet" href="../css/find-transport.css">
+</head>
+<body>
+
+  <!-- Site Navigation Header -->
+  <header class="site-header">
+    <div class="header-container">
+      <a href="./dashboard.html" class="brand-link">
+        <span class="brand-icon">🚕</span>
+        <span>CampusRide</span>
+      </a>
+      <nav class="nav-actions">
+        <a href="./dashboard.html" class="nav-link">Dashboard</a>
+        <a href="./bookings.html" class="nav-link">My Bookings</a>
+        <button id="logoutBtn" class="btn btn-outline-danger btn-sm">
+          Log Out
+        </button>
+      </nav>
+    </div>
+  </header>
+
+  <!-- Main Content Wrapper -->
+  <main class="dashboard-wrapper">
+    <!-- Header banner -->
+    <div class="search-header">
+      <h1 class="search-header-title">Find Available Transport</h1>
+      <p class="search-header-subtitle">
+        Browse verified campus taxi and motorbike drivers currently on duty.
+      </p>
+    </div>
+
+    <!-- Alert / Feedback Banner -->
+    <div id="alertBox" class="alert hidden" role="alert"></div>
+
+    <!-- Filter & Refresh Bar -->
+    <div class="filter-bar">
+      <div class="filter-group">
+        <span class="filter-label">Filter:</span>
+        <button type="button" class="filter-btn active" data-type="all">
+          All Services
+        </button>
+        <button type="button" class="filter-btn" data-type="taxi">
+          🚕 Taxis
+        </button>
+        <button type="button" class="filter-btn" data-type="motorbike">
+          🏍️ Motorbikes
+        </button>
+      </div>
+
+      <button type="button" id="refreshBtn" class="refresh-btn">
+        <span id="refreshIcon">🔄</span> Refresh Drivers
+      </button>
+    </div>
+
+    <!-- Dynamic Providers Grid Container -->
+    <div id="providersContainer">
+      <!-- Loading State (default) -->
+      <div id="loadingState" class="loading-box">
+        <div class="spinner"></div>
+        <p>Loading available drivers...</p>
+      </div>
+
+      <!-- Providers Grid -->
+      <div id="providersGrid" class="providers-grid" style="display: none;"></div>
+
+      <!-- Empty State -->
+      <div id="emptyState" class="empty-state" style="display: none;">
+        <div class="empty-state-icon">📭</div>
+        <h3 class="empty-state-title">No drivers currently available</h3>
+        <p class="empty-state-desc">
+          There are no service providers available matching your filter right now. Check back soon or try another category.
+        </p>
+      </div>
+    </div>
+  </main>
+
+  <!-- Booking Modal Dialog -->
+  <div id="bookingModal" class="modal-overlay" role="dialog" aria-modal="true" style="display: none;">
+    <div class="booking-modal-card">
+      <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
+        <h2 style="font-size: 1.25rem; font-weight: 700; margin: 0; color: #0f172a;">Request a Ride</h2>
+        <button type="button" id="closeBookingModalBtn" style="background: none; border: none; font-size: 1.4rem; cursor: pointer; color: #64748b;">✕</button>
+      </div>
+
+      <!-- Selected Driver Info -->
+      <div class="booking-driver-summary">
+        <div id="modalDriverAvatar" class="provider-avatar taxi" style="width: 42px; height: 42px; font-size: 1.3rem;">🚕</div>
+        <div>
+          <div id="modalDriverName" style="font-weight: 700; color: #0f172a;">Driver Name</div>
+          <div id="modalDriverVehicle" style="font-size: 0.82rem; color: #64748b;">Vehicle details</div>
+        </div>
+      </div>
+
+      <form id="bookingForm">
+        <input type="hidden" id="modalProviderId" />
+        <input type="hidden" id="modalBaseFare" value="0" />
+
+        <!-- Pickup Location -->
+        <div class="form-group" style="margin-bottom: 0.85rem;">
+          <label class="form-label" for="pickupLocationInput">Pickup Location</label>
+          <input 
+            type="text" 
+            id="pickupLocationInput" 
+            class="form-input" 
+            placeholder="e.g. Main Campus Gate" 
+            required 
+          />
+          <div class="location-chips" id="pickupChips">
+            <button type="button" class="chip-btn" data-loc="Main Campus Gate">🏫 Main Gate</button>
+            <button type="button" class="chip-btn" data-loc="University Library">📚 Library</button>
+            <button type="button" class="chip-btn" data-loc="Hostels Block A/B/C">🏢 Hostels</button>
+            <button type="button" class="chip-btn" data-loc="Sports Pavilion">⚽ Sports Pavilion</button>
+          </div>
+        </div>
+
+        <!-- Destination -->
+        <div class="form-group" style="margin-bottom: 0.85rem;">
+          <label class="form-label" for="destinationInput">Destination</label>
+          <input 
+            type="text" 
+            id="destinationInput" 
+            class="form-input" 
+            placeholder="e.g. Town Central Market" 
+            required 
+          />
+          <div class="location-chips" id="destChips">
+            <button type="button" class="chip-btn" data-loc="Town Central Market">🛒 Town Market</button>
+            <button type="button" class="chip-btn" data-loc="City Mall Shopping Center">🛍️ City Mall</button>
+            <button type="button" class="chip-btn" data-loc="General Hospital">🏥 Hospital</button>
+            <button type="button" class="chip-btn" data-loc="Main Bus Depot">🚌 Bus Depot</button>
+          </div>
+        </div>
+
+        <!-- Fare Highlight -->
+        <div class="booking-fare-highlight">
+          <span style="font-size: 0.88rem; font-weight: 600; color: #92400e;">Standard Trip Fare:</span>
+          <span id="modalFareDisplay" style="font-size: 1.25rem; font-weight: 800; color: #d97706;">MWK 0</span>
+        </div>
+
+        <!-- Payment Method -->
+        <div class="form-group" style="margin-bottom: 1rem;">
+          <label class="form-label">Payment Method</label>
+          <div class="payment-options-grid">
+            <label class="payment-radio-label">
+              <input type="radio" name="paymentMethod" value="cash" checked />
+              <span>💵 Cash</span>
+            </label>
+            <label class="payment-radio-label">
+              <input type="radio" name="paymentMethod" value="airtel_money" />
+              <span>📱 Airtel</span>
+            </label>
+            <label class="payment-radio-label">
+              <input type="radio" name="paymentMethod" value="mpamba" />
+              <span>📲 Mpamba</span>
+            </label>
+          </div>
+        </div>
+
+        <!-- Additional Notes -->
+        <div class="form-group" style="margin-bottom: 1.25rem;">
+          <label class="form-label" for="notesInput">Notes for Driver (Optional)</label>
+          <input 
+            type="text" 
+            id="notesInput" 
+            class="form-input" 
+            placeholder="e.g. Standing by security gate with 2 bags" 
+          />
+        </div>
+
+        <!-- Action Buttons -->
+        <div style="display: flex; gap: 0.75rem;">
+          <button type="button" id="cancelBookingBtn" class="btn btn-secondary btn-block" style="flex: 1;">Cancel</button>
+          <button type="submit" id="submitBookingBtn" class="btn btn-primary btn-block" style="flex: 2;">Confirm Booking</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Booking Success Modal -->
+  <div id="bookingSuccessModal" class="modal-overlay" role="dialog" aria-modal="true" style="display: none;">
+    <div class="modal-card" style="max-width: 440px;">
+      <div class="modal-icon" style="background: #dcfce7; color: #16a34a; font-size: 2.2rem; width: 64px; height: 64px; border-radius: 50%; display: flex; align-items: center; justify-content: center; margin: 0 auto 1rem auto;">✓</div>
+      <h3 class="modal-title" style="color: #0f172a; margin-bottom: 0.5rem;">Ride Requested!</h3>
+      <p class="modal-text" id="successBookingText" style="color: #475569; margin-bottom: 1.25rem;">
+        Your booking request has been sent to the driver. You can track your trip in real time.
+      </p>
+      <div style="display: flex; flex-direction: column; gap: 0.5rem;">
+        <a href="./bookings.html" class="btn btn-primary btn-block">View in My Bookings</a>
+        <button type="button" id="dismissSuccessBtn" class="btn btn-secondary btn-block">Stay Here</button>
+      </div>
+    </div>
+  </div>
+
+  <footer class="site-footer">
+    <p>&copy; 2026 CampusRide Transport Booking App — Student Portal</p>
+  </footer>
+
+  <!-- Script -->
+  <script type="module" src="../js/student/find-transport.js"></script>
+</body>
+</html>

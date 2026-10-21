@@ -1,0 +1,194 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Provider Bookings & Dispatch — CampusRide</title>
+  <link rel="stylesheet" href="../css/main.css">
+  <link rel="stylesheet" href="../css/dashboard.css">
+  <link rel="stylesheet" href="../css/find-transport.css">
+  <style>
+    .dispatch-card {
+      background: var(--card-bg);
+      border: 1px solid var(--border-color);
+      border-radius: var(--radius-md);
+      padding: 1.25rem;
+      margin-bottom: 1rem;
+      box-shadow: var(--shadow-sm);
+      display: flex;
+      flex-direction: column;
+      gap: 0.85rem;
+      transition: var(--transition);
+    }
+    .dispatch-card:hover {
+      border-color: #cbd5e1;
+      box-shadow: var(--shadow-md);
+    }
+    .dispatch-card.urgent {
+      border-left: 4px solid #f59e0b;
+    }
+    .dispatch-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      gap: 1rem;
+    }
+    .dispatch-student-info {
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+    }
+    .dispatch-route {
+      background: #f8fafc;
+      border: 1px solid var(--border-color);
+      border-radius: var(--radius-sm);
+      padding: 0.85rem 1rem;
+      display: flex;
+      flex-direction: column;
+      gap: 0.4rem;
+      font-size: 0.9rem;
+    }
+    .dispatch-meta {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      flex-wrap: wrap;
+      gap: 0.75rem;
+      padding-top: 0.5rem;
+      border-top: 1px dashed var(--border-color);
+    }
+    .status-badge {
+      font-size: 0.78rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+      padding: 0.25rem 0.65rem;
+      border-radius: 9999px;
+      display: inline-flex;
+      align-items: center;
+      gap: 0.35rem;
+    }
+    .status-badge.pending { background: #fef3c7; color: #b45309; }
+    .status-badge.accepted { background: #dbeafe; color: #1e40af; }
+    .status-badge.in_progress { background: #e0e7ff; color: #4338ca; }
+    .status-badge.completed { background: #dcfce7; color: #15803d; }
+    .status-badge.cancelled { background: #fee2e2; color: #b91c1c; }
+    .dispatch-actions {
+      display: flex;
+      gap: 0.5rem;
+      align-items: center;
+      flex-wrap: wrap;
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Site Navigation Header -->
+  <header class="site-header">
+    <div class="header-container">
+      <a href="./dashboard.html" class="brand-link">
+        <span class="brand-icon">🚕</span>
+        <span>CampusRide</span>
+      </a>
+      <nav class="nav-actions">
+        <a href="./dashboard.html" class="nav-link">Dashboard</a>
+        <a href="./profile.html" class="nav-link">Profile</a>
+        <a href="./bookings.html" class="nav-link" style="color: var(--primary-color); font-weight: 700;">Incoming Requests</a>
+        <button id="logoutBtn" class="btn btn-outline-danger btn-sm">
+          Log Out
+        </button>
+      </nav>
+    </div>
+  </header>
+
+  <!-- Dashboard Main Wrapper -->
+  <main class="dashboard-wrapper">
+    <!-- Header banner -->
+    <div class="search-header" style="display: flex; justify-content: space-between; align-items: flex-end; flex-wrap: wrap; gap: 1rem;">
+      <div>
+        <h1 class="search-header-title">Ride Dispatch & Requests</h1>
+        <p class="search-header-subtitle">
+          Manage live trip requests, pick up campus riders, and track your total earnings.
+        </p>
+      </div>
+      <a href="./dashboard.html" class="btn btn-secondary btn-sm">
+        ← Back to Dashboard
+      </a>
+    </div>
+
+    <!-- Provider Stats Grid -->
+    <section class="stats-grid" style="margin-bottom: 1.5rem;">
+      <div class="stat-card">
+        <span class="stat-label">Pending Requests</span>
+        <span class="stat-value" id="statPendingRequests" style="color: #d97706;">0</span>
+        <span class="stat-note">Requires your action</span>
+      </div>
+      <div class="stat-card">
+        <span class="stat-label">Active Trips</span>
+        <span class="stat-value" id="statActiveTrips" style="color: #0284c7;">0</span>
+        <span class="stat-note">Accepted or in progress</span>
+      </div>
+      <div class="stat-card">
+        <span class="stat-label">Completed Trips</span>
+        <span class="stat-value" id="statCompletedTrips" style="color: #10b981;">0</span>
+        <span class="stat-note">Delivered riders</span>
+      </div>
+      <div class="stat-card">
+        <span class="stat-label">Total Earnings</span>
+        <span class="stat-value" id="statTotalEarnings" style="color: #b45309;">MWK 0</span>
+        <span class="stat-note">From completed rides</span>
+      </div>
+    </section>
+
+    <!-- Filter & Refresh Bar -->
+    <div class="filter-bar">
+      <div class="filter-group">
+        <span class="filter-label">Filter:</span>
+        <button type="button" class="filter-btn active" data-status="pending">
+          🔔 New Requests (<span id="tabCountPending">0</span>)
+        </button>
+        <button type="button" class="filter-btn" data-status="active">
+          ⚡ Active Trips (<span id="tabCountActive">0</span>)
+        </button>
+        <button type="button" class="filter-btn" data-status="completed">
+          ✓ Completed
+        </button>
+        <button type="button" class="filter-btn" data-status="all">
+          All Requests
+        </button>
+      </div>
+
+      <button type="button" id="refreshBtn" class="refresh-btn">
+        <span>🔄</span> Refresh Requests
+      </button>
+    </div>
+
+    <!-- Feedback Banner -->
+    <div id="alertBox" class="alert hidden" role="alert"></div>
+
+    <!-- Requests Container -->
+    <div id="requestsContainer">
+      <div id="loadingState" class="loading-box">
+        <div class="spinner"></div>
+        <p>Loading incoming ride requests...</p>
+      </div>
+
+      <div id="requestsList" style="display: none;"></div>
+
+      <div id="emptyState" class="empty-state" style="display: none;">
+        <div class="empty-state-icon">📡</div>
+        <h3 class="empty-state-title">No requests found</h3>
+        <p class="empty-state-desc">
+          You have no ride requests in this category right now. Make sure your availability is set to "Available" in your profile!
+        </p>
+      </div>
+    </div>
+  </main>
+
+  <footer class="site-footer">
+    <p>&copy; 2026 CampusRide Transport Booking App — Provider Portal</p>
+  </footer>
+
+  <script type="module" src="../js/provider/bookings.js"></script>
+</body>
+</html>

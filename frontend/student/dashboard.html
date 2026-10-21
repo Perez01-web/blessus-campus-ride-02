@@ -1,0 +1,124 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Student Dashboard — CampusRide</title>
+  <link rel="stylesheet" href="../css/main.css">
+  <link rel="stylesheet" href="../css/dashboard.css">
+</head>
+<body>
+
+  <!-- Site Navigation Header -->
+  <header class="site-header">
+    <div class="header-container">
+      <a href="./dashboard.html" class="brand-link">
+        <span class="brand-icon">🚕</span>
+        <span>CampusRide</span>
+      </a>
+      <nav class="nav-actions">
+        <a href="./find-transport.html" class="nav-link">Find Transport</a>
+        <a href="./bookings.html" class="nav-link">My Bookings</a>
+        <button id="logoutBtn" class="btn btn-outline-danger btn-sm">
+          Log Out
+        </button>
+      </nav>
+    </div>
+  </header>
+
+  <!-- Main Content Wrapper -->
+  <main class="dashboard-wrapper">
+    <!-- Greeting Card -->
+    <section class="greeting-card">
+      <span class="greeting-badge">Student Account</span>
+      <h1 class="greeting-title">Welcome, <span id="studentName">Student</span></h1>
+      <p class="greeting-subtitle">Need a taxi or motorbike ride? You're in the right place.</p>
+    </section>
+
+    <!-- Student Profile Summary -->
+    <section class="stats-grid">
+      <div class="stat-card">
+        <span class="stat-label">Account Type</span>
+        <span class="stat-value" style="color: #0284c7;">Student</span>
+        <span class="stat-note">Verified service seeker</span>
+      </div>
+
+      <div class="stat-card">
+        <span class="stat-label">Registered Email</span>
+        <span class="stat-value" id="studentEmail" style="font-size: 1rem; word-break: break-all;">Loading...</span>
+        <span class="stat-note">Primary contact</span>
+      </div>
+
+      <div class="stat-card">
+        <span class="stat-label">Phone Number</span>
+        <span class="stat-value" id="studentPhone" style="font-size: 1.1rem;">Loading...</span>
+        <span class="stat-note">Driver contact</span>
+      </div>
+    </section>
+
+    <!-- Quick Actions Section -->
+    <section>
+      <div class="section-header">
+        <h2 class="section-title">Quick Actions</h2>
+      </div>
+
+      <div class="actions-grid">
+        <!-- Find Transport Action Card -->
+        <div class="action-card">
+          <div>
+            <div class="action-card-header">
+              <div class="action-icon accent-amber">🔍</div>
+              <div>
+                <h3 class="action-title">Find Transport</h3>
+              </div>
+            </div>
+            <p class="action-desc">
+              Browse available taxis and motorbikes near your campus location.
+            </p>
+          </div>
+          <button id="findTransportBtn" class="btn btn-primary btn-block">
+            Find Transport
+          </button>
+        </div>
+
+        <!-- My Bookings Action Card -->
+        <div class="action-card">
+          <div>
+            <div class="action-card-header">
+              <div class="action-icon accent-blue">📅</div>
+              <div>
+                <h3 class="action-title">My Bookings</h3>
+              </div>
+            </div>
+            <p class="action-desc">
+              Track your scheduled rides, reserved seats, and trip statuses.
+            </p>
+          </div>
+          <button id="myBookingsBtn" class="btn btn-secondary btn-block">
+            My Bookings
+          </button>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <!-- Coming Soon Modal Dialog -->
+  <div id="comingSoonModal" class="modal-overlay" role="dialog" aria-modal="true">
+    <div class="modal-card">
+      <div class="modal-icon">🚀</div>
+      <h3 class="modal-title">Next Module Feature</h3>
+      <p id="modalFeatureText" class="modal-text">Coming in the next module.</p>
+      <button id="closeModalBtn" class="btn btn-primary btn-block">
+        Got it
+      </button>
+    </div>
+  </div>
+
+  <footer class="site-footer">
+    <p>&copy; 2026 CampusRide Transport Booking App — Student Portal</p>
+  </footer>
+
+  <!-- Student Dashboard Script -->
+  <script type="module" src="../js/student-dashboard.js"></script>
+</body>
+</html>

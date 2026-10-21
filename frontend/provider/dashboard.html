@@ -1,0 +1,229 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Provider Dashboard — CampusRide</title>
+  <link rel="stylesheet" href="../css/main.css">
+  <link rel="stylesheet" href="../css/dashboard.css">
+</head>
+<body>
+
+  <!-- Site Navigation Header -->
+  <header class="site-header">
+    <div class="header-container">
+      <a href="./dashboard.html" class="brand-link">
+        <span class="brand-icon">🚕</span>
+        <span>CampusRide</span>
+      </a>
+      <nav class="nav-actions">
+        <a href="./profile.html" class="nav-link">Profile</a>
+        <a href="./bookings.html" class="nav-link">Incoming Requests</a>
+        <button id="logoutBtn" class="btn btn-outline-danger btn-sm">
+          Log Out
+        </button>
+      </nav>
+    </div>
+  </header>
+
+  <!-- Dashboard Main Wrapper -->
+  <main class="dashboard-wrapper">
+    <!-- Greeting Card -->
+    <section class="greeting-card">
+      <span class="greeting-badge">Service Provider Portal</span>
+      <h1 class="greeting-title">Welcome, <span id="providerName">Provider</span></h1>
+      <p class="greeting-subtitle">Manage your transport availability, rates, and rider inquiries.</p>
+    </section>
+
+    <!-- Operational Stats Grid -->
+    <section class="stats-grid">
+      <!-- Provider Type -->
+      <div class="stat-card">
+        <span class="stat-label">Provider Type</span>
+        <span class="stat-value" id="providerType">Taxi Driver</span>
+        <span class="stat-note" id="providerVehicle">Registered vehicle</span>
+      </div>
+
+      <!-- Current Status -->
+      <div class="stat-card">
+        <span class="stat-label">Current Status</span>
+        <div style="margin-top: 0.25rem;">
+          <span id="providerStatusPill" class="status-pill status-available">Available</span>
+        </div>
+        <span class="stat-note">Visible to students</span>
+      </div>
+
+      <!-- Current Trip Price -->
+      <div class="stat-card">
+        <span class="stat-label">Standard Price</span>
+        <span class="stat-value" id="providerPrice" style="color: #d97706;">MWK 0</span>
+        <span class="stat-note">Per trip / student</span>
+      </div>
+
+      <!-- Estimated Waiting Time -->
+      <div class="stat-card">
+        <span class="stat-label">Est. Waiting Time</span>
+        <span class="stat-value" id="providerWaitTime">10 minutes</span>
+        <span class="stat-note">Average pickup time</span>
+      </div>
+    </section>
+
+    <!-- Provider Actions Grid -->
+    <section>
+      <div class="section-header">
+        <h2 class="section-title">Provider Management</h2>
+      </div>
+
+      <div class="actions-grid">
+        <!-- Edit Profile (Working Feature) -->
+        <div class="action-card" style="border-color: #f59e0b;">
+          <div>
+            <div class="action-card-header">
+              <div class="action-icon accent-amber">⚙️</div>
+              <div>
+                <h3 class="action-title">Provider Profile</h3>
+              </div>
+            </div>
+            <p class="action-desc">
+              Edit vehicle details, registration plate, trip price, waiting time, and availability.
+            </p>
+          </div>
+          <a href="./profile.html" class="btn btn-primary btn-block">
+            Edit Profile
+          </a>
+        </div>
+
+        <!-- My Bookings -->
+        <div class="action-card" style="border-color: #10b981;">
+          <div>
+            <div class="action-card-header">
+              <div class="action-icon accent-green">📋</div>
+              <div>
+                <h3 class="action-title">Ride Dispatch & Requests</h3>
+              </div>
+            </div>
+            <p class="action-desc">
+              View live ride requests, accept student bookings, and track completed trips.
+            </p>
+          </div>
+          <a href="./bookings.html" id="myBookingsBtn" class="btn btn-primary btn-block">
+            Manage Ride Requests
+          </a>
+        </div>
+
+        <!-- Update Price -->
+        <div class="action-card">
+          <div>
+            <div class="action-card-header">
+              <div class="action-icon">💰</div>
+              <div>
+                <h3 class="action-title">Update Price</h3>
+              </div>
+            </div>
+            <p class="action-desc">
+              Quickly adjust standard base fare or surcharge during peak campus hours.
+            </p>
+          </div>
+          <button type="button" id="updatePriceBtn" class="btn btn-secondary btn-block">
+            Update Fare
+          </button>
+        </div>
+
+        <!-- My Schedule -->
+        <div class="action-card">
+          <div>
+            <div class="action-card-header">
+              <div class="action-icon accent-blue">🕒</div>
+              <div>
+                <h3 class="action-title">My Schedule</h3>
+              </div>
+            </div>
+            <p class="action-desc">
+              Configure daily operating shift hours and active campus route zones.
+            </p>
+          </div>
+          <button type="button" id="myScheduleBtn" class="btn btn-secondary btn-block">
+            Set Operating Hours
+          </button>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <!-- Quick Price Update Modal -->
+  <div id="priceModal" class="modal-overlay" role="dialog" aria-modal="true" style="display: none;">
+    <div class="modal-card" style="max-width: 440px;">
+      <h3 class="modal-title">Update Trip Price</h3>
+      <p class="modal-text">Set your standard student fare in Malawian Kwacha (MWK).</p>
+
+      <div class="form-group" style="margin: 1.25rem 0;">
+        <label class="form-label" for="quickPriceInput">Standard Fare (MWK)</label>
+        <input type="number" id="quickPriceInput" class="form-input" min="500" step="100" />
+        <div style="display: flex; gap: 0.5rem; margin-top: 0.5rem; flex-wrap: wrap;">
+          <button type="button" class="chip-btn" id="pricePlus500">+500 MWK</button>
+          <button type="button" class="chip-btn" id="priceMinus500">-500 MWK</button>
+          <button type="button" class="chip-btn" id="priceSet2000">2,000 MWK</button>
+          <button type="button" class="chip-btn" id="priceSet5000">5,000 MWK</button>
+        </div>
+      </div>
+
+      <div style="display: flex; gap: 0.5rem;">
+        <button type="button" id="closePriceModalBtn" class="btn btn-secondary btn-block" style="flex: 1;">Cancel</button>
+        <button type="button" id="saveQuickPriceBtn" class="btn btn-primary btn-block" style="flex: 1.5;">Save Price</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Schedule Modal Dialog -->
+  <div id="scheduleModal" class="modal-overlay" role="dialog" aria-modal="true" style="display: none;">
+    <div class="modal-card" style="max-width: 480px;">
+      <h3 class="modal-title">Duty Shift & Operating Hours</h3>
+      <p class="modal-text">Configure your active shift hours and campus service zones.</p>
+
+      <form id="scheduleForm" style="margin-top: 1rem;">
+        <div class="form-group" style="margin-bottom: 0.85rem;">
+          <label class="form-label">Duty Status</label>
+          <select id="scheduleDutyStatus" class="form-select">
+            <option value="true">🟢 On Duty (Available for rides)</option>
+            <option value="false">🔴 Off Duty (Resting / Unavailable)</option>
+          </select>
+        </div>
+
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 0.75rem; margin-bottom: 0.85rem;">
+          <div class="form-group">
+            <label class="form-label" for="shiftStart">Shift Start</label>
+            <input type="time" id="shiftStart" class="form-input" value="06:30" />
+          </div>
+          <div class="form-group">
+            <label class="form-label" for="shiftEnd">Shift End</label>
+            <input type="time" id="shiftEnd" class="form-input" value="21:30" />
+          </div>
+        </div>
+
+        <div class="form-group" style="margin-bottom: 1.25rem;">
+          <label class="form-label">Primary Campus Zone</label>
+          <select id="scheduleZone" class="form-select">
+            <option value="Main Campus & Chirunga">Main Campus & Chirunga</option>
+            <option value="Hostel Blocks & Main Gate">Hostel Blocks & Main Gate</option>
+            <option value="Town & City Mall Routes">Town & City Mall Routes</option>
+            <option value="Library & Sports Complex">Library & Sports Complex</option>
+            <option value="All Campus Zones">All Campus Zones</option>
+          </select>
+        </div>
+
+        <div style="display: flex; gap: 0.5rem;">
+          <button type="button" id="closeScheduleModalBtn" class="btn btn-secondary btn-block" style="flex: 1;">Cancel</button>
+          <button type="submit" id="saveScheduleBtn" class="btn btn-primary btn-block" style="flex: 1.5;">Save Schedule</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <footer class="site-footer">
+    <p>&copy; 2026 CampusRide Transport Booking App — Provider Portal</p>
+  </footer>
+
+  <!-- Provider Dashboard Script -->
+  <script type="module" src="../js/provider-dashboard.js"></script>
+</body>
+</html>
