@@ -114,6 +114,7 @@ class ProviderService {
     if (updateData.price !== undefined) safeUpdates.price = Number(updateData.price) || 0;
     if (updateData.estimatedWaitTime !== undefined) safeUpdates.estimatedWaitTime = Number(updateData.estimatedWaitTime) || 0;
     if (updateData.available !== undefined) safeUpdates.available = Boolean(updateData.available);
+    if (updateData.availableUntil !== undefined) safeUpdates.availableUntil = updateData.availableUntil;
 
     memoryProviders.set(providerId, safeUpdates);
 
@@ -137,41 +138,53 @@ class ProviderService {
   async getAvailableProviders(filters = {}) {
     const results = [];
 
-     // 1. Try Firestore
-     if (firestoreDb) {
-       try {
-         let query = firestoreDb.collection('providers');
-         const snapshot = await query.get();
+    // 1. Try Firestore
+    if (firestoreDb) {
+      try {
+        const query = firestoreDb.collection('providers');
+        const snapshot = await query.get();
+        const nowFs = Date.now();
 
-         snapshot.forEach(docSnap => {
-           const pData = docSnap.data();
-           // Filter by availability
-           if (pData.available !== false) {
-             if (!filters.providerType || filters.providerType === 'all' || pData.providerType === filters.providerType) {
-               results.push({ id: docSnap.id, ...pData });
-             }
-           }
-         });
+        snapshot.forEach(docSnap => {
+          const pData = docSnap.data();
+          // Filter by availability (respect the auto-reappear after 'back at')
+          if (pData.available === false) {
+            const untilMs = pData.availableUntil ? new Date(pData.availableUntil).getTime() : NaN;
+            const autoBack = !Number.isNaN(untilMs) && untilMs <= nowFs;
+            if (!autoBack) {
+              return;
+            }
+          }
+          if (!filters.providerType || filters.providerType === 'all' || pData.providerType === filters.providerType) {
+            results.push({ id: docSnap.id, ...pData });
+          }
+        });
 
-         if (results.length > 0) {
-           return results;
-         }
-       } catch (err) {
-         console.warn('[Provider Service] Firestore query warning (using fallback memory store):', err.message);
-       }
-     }
+        if (results.length > 0) {
+          return results;
+        }
+      } catch (err) {
+        console.warn('[Provider Service] Firestore query warning (using fallback memory store):', err.message);
+      }
+    }
 
-     // 2. Query in-memory providers
-     for (const [id, provider] of memoryProviders.entries()) {
-       if (provider.available !== false) {
-         if (!filters.providerType || filters.providerType === 'all' || provider.providerType === filters.providerType) {
-           results.push({ id, ...provider });
-         }
-       }
-     }
+    // 2. Query in-memory providers
+    const nowMem = Date.now();
+    for (const [id, provider] of memoryProviders.entries()) {
+      if (provider.available === false) {
+        const untilMs = provider.availableUntil ? new Date(provider.availableUntil).getTime() : NaN;
+        const autoBack = !Number.isNaN(untilMs) && untilMs <= nowMem;
+        if (!autoBack) {
+          continue;
+        }
+      }
+      if (!filters.providerType || filters.providerType === 'all' || provider.providerType === filters.providerType) {
+        results.push({ id, ...provider });
+      }
+    }
 
-     return results;
-   }
+    return results;
+  }
 }
 
 export default new ProviderService();

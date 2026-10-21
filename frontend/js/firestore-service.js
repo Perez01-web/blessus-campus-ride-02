@@ -31,15 +31,21 @@ export const firestoreService = {
       const snapshot = await getDocs(q);
       const providers = [];
       
+      const now = Date.now();
       snapshot.forEach((docSnap) => {
         const data = docSnap.data();
-        if (data.available !== false) {
-          if (!type || type === 'all' || data.providerType === type) {
-            providers.push({
-              id: docSnap.id,
-              ...data
-            });
+        if (data.available === false) {
+          const untilMs = data.availableUntil ? new Date(data.availableUntil).getTime() : NaN;
+          const autoBack = !Number.isNaN(untilMs) && untilMs <= now;
+          if (!autoBack) {
+            return;
           }
+        }
+        if (!type || type === 'all' || data.providerType === type) {
+          providers.push({
+            id: docSnap.id,
+            ...data
+          });
         }
       });
 

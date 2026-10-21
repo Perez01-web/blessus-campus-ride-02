@@ -2,21 +2,50 @@
  * Provider Dashboard Controller
  *
  * Manages provider dashboard statistics, vehicle type, pricing, availability status,
- * and the live ride request feed that reflects bookings made by students.
+ * the "My Schedule" panel (availability toggle, "back at" timer, next job) and the
+ * live ride request feed that reflects bookings made by students.
  */
 
 import { requireAuth, logoutUser } from './auth.js';
 import { db, isFirebaseConfigured } from './firebase-config.js';
-import { doc, getDoc } from 'https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js';
+import { doc, getDoc, setDoc } from 'https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js';
 import {
   subscribeToProviderBookings,
   updateBookingStatus,
   BOOKING_STATUS,
 } from './bookings-service.js';
-import { showComingSoonModal, closeComingSoonModal, formatMWK } from './utils.js';
+import { formatMWK } from './utils.js';
 
 let providerUid = null;
+let providerData = null;
+let providerDocExists = false;
 let bookingsUnsubscribe = null;
+let allBookings = [];
+let activeFilter = 'all';
+let countdownTimer = null;
+let restoreInFlight = false;
+let priceDraft = 0;
+
+const PRICE_STEP = 100;
+
+const EMPTY_STATE_COPY = {
+  all: {
+    title: 'No ride requests yet',
+    desc: 'When a student books you, the request appears here instantly with the pickup time they chose.',
+  },
+  upcoming: {
+    title: 'Nothing upcoming',
+    desc: 'Accepted and pending rides with a pickup time in the future will show up here.',
+  },
+  today: {
+    title: 'Nothing scheduled for today',
+    desc: 'Rides scheduled for today will show up here once a student books you.',
+  },
+  closed: {
+    title: 'No closed requests',
+    desc: 'Completed, declined and cancelled requests will be kept here for your records.',
+  },
+};
 
 document.addEventListener('DOMContentLoaded', () => {
   // Guard page: Require 'provider' role
@@ -26,7 +55,6 @@ document.addEventListener('DOMContentLoaded', () => {
     // 1. Render Basic User Details
     const providerNameEl = document.getElementById('providerName');
     const providerTypeEl = document.getElementById('providerType');
-    const providerStatusPill = document.getElementById('providerStatusPill');
     const providerPriceEl = document.getElementById('providerPrice');
     const providerWaitTimeEl = document.getElementById('providerWaitTime');
     const providerVehicleEl = document.getElementById('providerVehicle');
@@ -39,13 +67,12 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     // 2. Load Provider Profile Document from Firestore or Backend
-    let providerData = null;
-
     if (db && isFirebaseConfigured) {
       try {
         const providerSnap = await getDoc(doc(db, 'providers', user.uid));
         if (providerSnap.exists()) {
           providerData = providerSnap.data();
+          providerDocExists = true;
         }
       } catch (err) {
         console.warn('Firestore fetch error:', err.message);
@@ -68,32 +95,33 @@ document.addEventListener('DOMContentLoaded', () => {
     // Default values if no profile created yet
     const price = providerData && providerData.price !== undefined ? providerData.price : 0;
     const waitTime = providerData && providerData.estimatedWaitTime !== undefined ? providerData.estimatedWaitTime : 10;
-    const isAvailable = providerData ? providerData.available !== false : true;
     const vehicleName = providerData && providerData.vehicleName ? providerData.vehicleName : 'Vehicle not registered';
+    priceDraft = Number(price) || 0;
 
-    if (providerPriceEl) providerPriceEl.textContent = formatMWK(price);
+    if (providerPriceEl) {
+      providerPriceEl.textContent = formatMWK(priceDraft);
+    }
+    updatePriceStepUI();
     if (providerWaitTimeEl) providerWaitTimeEl.textContent = `${waitTime} minutes`;
     if (providerVehicleEl) providerVehicleEl.textContent = vehicleName;
 
-    if (providerStatusPill) {
-      if (isAvailable) {
-        providerStatusPill.className = 'status-pill status-available';
-        providerStatusPill.textContent = 'Available for Trips';
-      } else {
-        providerStatusPill.className = 'status-pill status-unavailable';
-        providerStatusPill.textContent = 'Unavailable';
-      }
-    }
+    // 3. Render the My Schedule panel (availability + back at + next up)
+    renderAvailability();
+    renderNextUp();
+    startAvailabilityCountdown();
 
-    // 3. Start the live ride request feed
+    // 4. Start the live ride request feed
     startBookingsSubscription();
   });
 
-  // Action buttons (Next Module placeholders)
+  // My Schedule now scrolls to the schedule panel on the dashboard
   const myScheduleBtn = document.getElementById('myScheduleBtn');
   if (myScheduleBtn) {
     myScheduleBtn.addEventListener('click', () => {
-      showComingSoonModal('My Schedule Management');
+      const section = document.getElementById('scheduleSection');
+      if (section) {
+        section.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      }
     });
   }
 
@@ -107,11 +135,47 @@ document.addEventListener('DOMContentLoaded', () => {
       }
     });
   }
+  // Inline price stepper (Standard Price stat card)
+  const priceDecBtn = document.getElementById('priceDecBtn');
+  if (priceDecBtn) {
+    priceDecBtn.addEventListener('click', () => stepPrice(-PRICE_STEP));
+  }
 
-  const updatePriceBtn = document.getElementById('updatePriceBtn');
-  if (updatePriceBtn) {
-    updatePriceBtn.addEventListener('click', () => {
-      showComingSoonModal('Quick Price Update Tool');
+  const priceIncBtn = document.getElementById('priceIncBtn');
+  if (priceIncBtn) {
+    priceIncBtn.addEventListener('click', () => stepPrice(PRICE_STEP));
+  }
+
+  const priceSaveBtn = document.getElementById('priceSaveBtn');
+  if (priceSaveBtn) {
+    priceSaveBtn.addEventListener('click', savePrice);
+  }
+
+  // Availability controls
+  const availabilityToggle = document.getElementById('availabilityToggle');
+  if (availabilityToggle) {
+    availabilityToggle.addEventListener('change', (e) => {
+      handleAvailabilityToggle(e.target.checked);
+    });
+  }
+
+  const applyBackAtBtn = document.getElementById('applyBackAtBtn');
+  if (applyBackAtBtn) {
+    applyBackAtBtn.addEventListener('click', handleSetBackAt);
+  }
+
+  const clearBackAtBtn = document.getElementById('clearBackAtBtn');
+  if (clearBackAtBtn) {
+    clearBackAtBtn.addEventListener('click', handleClearBackAt);
+  }
+
+  // Ride request filter tabs
+  const filterBar = document.querySelector('.booking-filter-bar');
+  if (filterBar) {
+    filterBar.addEventListener('click', (e) => {
+      const btn = e.target.closest('[data-booking-filter]');
+      if (!btn) return;
+      setBookingFilter(btn.dataset.bookingFilter);
     });
   }
 
@@ -135,16 +199,13 @@ document.addEventListener('DOMContentLoaded', () => {
     });
   }
 
-  // Modal close handlers
-  const closeModalBtn = document.getElementById('closeModalBtn');
-  if (closeModalBtn) {
-    closeModalBtn.addEventListener('click', closeComingSoonModal);
-  }
-
-  const modalOverlay = document.getElementById('comingSoonModal');
-  if (modalOverlay) {
-    modalOverlay.addEventListener('click', (e) => {
-      if (e.target === modalOverlay) closeComingSoonModal();
+  // Next up card action buttons (delegated - content is re-rendered on updates)
+  const nextUpContent = document.getElementById('nextUpContent');
+  if (nextUpContent) {
+    nextUpContent.addEventListener('click', (e) => {
+      const actionBtn = e.target.closest('[data-booking-action]');
+      if (!actionBtn) return;
+      handleBookingAction(actionBtn.dataset.bookingId, BOOKING_STATUS.ACCEPTED);
     });
   }
 
@@ -157,6 +218,387 @@ document.addEventListener('DOMContentLoaded', () => {
     });
   }
 });
+
+/* ------------------------------------------------------------------ *
+ * My Schedule — availability
+ * ------------------------------------------------------------------ */
+
+/**
+ * Work out the provider's effective availability.
+ * - 'available' : visible to students right now
+ * - 'paused'    : hidden, but automatically back at `availableUntil`
+ * - 'off'       : hidden with no automatic return
+ */
+function getAvailabilityState() {
+  const data = providerData || {};
+  const until = data.availableUntil || null;
+  const untilMs = until ? new Date(until).getTime() : NaN;
+  const hasValidUntil = !Number.isNaN(untilMs);
+
+  if (data.available !== false) {
+    return { mode: 'available', until: null, untilMs: NaN };
+  }
+  if (hasValidUntil && untilMs > Date.now()) {
+    return { mode: 'paused', until, untilMs };
+  }
+  return { mode: 'off', until: null, untilMs: NaN };
+}
+
+/**
+ * Render the availability card (toggle, labels, countdown, status pill).
+ */
+function renderAvailability() {
+  const toggle = document.getElementById('availabilityToggle');
+  const stateEl = document.getElementById('availabilityState');
+  const substateEl = document.getElementById('availabilitySubstate');
+  const countdownEl = document.getElementById('availabilityCountdown');
+  const input = document.getElementById('backAtTime');
+  const pill = document.getElementById('providerStatusPill');
+
+  const state = getAvailabilityState();
+
+  if (toggle) {
+    toggle.checked = state.mode === 'available';
+    toggle.disabled = !providerDocExists;
+  }
+
+  if (stateEl) {
+    if (state.mode === 'available') stateEl.textContent = 'Taking rides';
+    else if (state.mode === 'paused') stateEl.textContent = `Unavailable until ${formatClock(state.until)}`;
+    else stateEl.textContent = 'Not taking rides';
+  }
+
+  if (substateEl) {
+    if (!providerDocExists) {
+      substateEl.textContent = 'Complete your provider profile to manage availability';
+    } else if (state.mode === 'available') {
+      substateEl.textContent = 'Students can find and book you';
+    } else {
+      substateEl.textContent = 'You are hidden from student search';
+    }
+  }
+
+  if (countdownEl) {
+    if (state.mode === 'paused') {
+      countdownEl.className = 'availability-countdown is-active';
+      countdownEl.textContent = `Back online in ${formatDuration(state.untilMs - Date.now())}`;
+    } else {
+      countdownEl.className = 'availability-countdown';
+      countdownEl.textContent = '';
+    }
+  }
+
+  if (input) {
+    const untilValue = state.mode === 'paused'
+      ? state.until
+      : (providerData && providerData.availableUntil ? providerData.availableUntil : null);
+    input.value = untilValue ? formatTimeInputValue(untilValue) : '';
+  }
+
+  if (pill) {
+    if (state.mode === 'available') {
+      pill.className = 'status-pill status-available';
+      pill.textContent = 'Available for Trips';
+    } else {
+      pill.className = 'status-pill status-unavailable';
+      pill.textContent = state.mode === 'paused' ? `Back at ${formatClock(state.until)}` : 'Unavailable';
+    }
+  }
+}
+
+/**
+ * Persist a patch onto the provider's own Firestore document.
+ */
+async function updateProviderDoc(patch) {
+  if (!providerUid) throw new Error('You are not signed in.');
+  if (!db || !isFirebaseConfigured) throw new Error('Firestore is not configured.');
+  if (!providerDocExists) throw new Error('Provider profile not found.');
+
+  const payload = {
+    ...patch,
+    providerId: providerUid,
+    updatedAt: new Date().toISOString(),
+  };
+
+  await setDoc(doc(db, 'providers', providerUid), payload, { merge: true });
+
+  providerData = { ...(providerData || {}), ...payload };
+  renderAvailability();
+  return providerData;
+}
+
+/**
+ * Flip the availability switch on or off.
+ */
+async function handleAvailabilityToggle(isAvailable) {
+  const toggle = document.getElementById('availabilityToggle');
+  if (toggle) toggle.disabled = true;
+
+  try {
+    await updateProviderDoc(
+      isAvailable
+        ? { available: true, availableUntil: null }
+        : { available: false, availableUntil: null }
+    );
+    showScheduleMessage(
+      isAvailable
+        ? 'You are live — students can book you again.'
+        : 'You are off. Students will not see you in search.',
+      'success'
+    );
+  } catch (error) {
+    console.error('[Provider Dashboard] Availability update failed:', error);
+    if (toggle) toggle.checked = !isAvailable;
+    showScheduleMessage('Could not update your availability. Please try again.', 'danger');
+  } finally {
+    if (toggle) toggle.disabled = !providerDocExists;
+  }
+}
+
+/**
+ * Hide the provider from search until the chosen time.
+ */
+async function handleSetBackAt() {
+  const input = document.getElementById('backAtTime');
+  if (!input) return;
+
+  const iso = resolveBackAtIso(input.value);
+  if (!iso) {
+    showScheduleMessage('Enter a valid time, for example 15:30.', 'danger');
+    return;
+  }
+
+  const btn = document.getElementById('applyBackAtBtn');
+  if (btn) btn.disabled = true;
+
+  try {
+    await updateProviderDoc({ available: false, availableUntil: iso });
+    showScheduleMessage(`Hidden from students until ${formatClock(iso)}.`, 'success');
+  } catch (error) {
+    console.error('[Provider Dashboard] Back-at update failed:', error);
+    showScheduleMessage('Could not set your return time. Please try again.', 'danger');
+  } finally {
+    if (btn) btn.disabled = false;
+  }
+}
+
+/**
+ * Clear the "back at" timer and come back online immediately.
+ */
+async function handleClearBackAt() {
+  const btn = document.getElementById('clearBackAtBtn');
+  if (btn) btn.disabled = true;
+
+  try {
+    await updateProviderDoc({ available: true, availableUntil: null });
+    showScheduleMessage('You are back online and visible to students.', 'success');
+  } catch (error) {
+    console.error('[Provider Dashboard] Could not clear the timer:', error);
+    showScheduleMessage('Could not update your status. Please try again.', 'danger');
+  } finally {
+    if (btn) btn.disabled = false;
+  }
+}
+
+/**
+ * Keep the countdown fresh and flip the provider back online when the time passes.
+ */
+function startAvailabilityCountdown() {
+  if (countdownTimer) clearInterval(countdownTimer);
+  countdownTimer = setInterval(tickAvailability, 1000);
+}
+
+async function tickAvailability() {
+  const state = getAvailabilityState();
+  const countdownEl = document.getElementById('availabilityCountdown');
+
+  if (state.mode === 'paused') {
+    const remaining = state.untilMs - Date.now();
+    if (remaining > 0) {
+      if (countdownEl) {
+        countdownEl.className = 'availability-countdown is-active';
+        countdownEl.textContent = `Back online in ${formatDuration(remaining)}`;
+      }
+      return;
+    }
+  }
+
+  await restoreAvailabilityIfElapsed();
+}
+
+/**
+ * Self-heal: if the "back at" time has passed, come back online automatically.
+ */
+async function restoreAvailabilityIfElapsed() {
+  if (restoreInFlight || !providerData) return;
+
+  const until = providerData.availableUntil;
+  if (!until) return;
+
+  const untilMs = new Date(until).getTime();
+  if (Number.isNaN(untilMs) || untilMs > Date.now()) return;
+
+  restoreInFlight = true;
+  try {
+    await updateProviderDoc({ available: true, availableUntil: null });
+    showScheduleMessage('You are back online and visible to students.', 'success');
+  } catch (error) {
+    console.warn('[Provider Dashboard] Auto-restore failed:', error);
+  } finally {
+    restoreInFlight = false;
+  }
+}
+
+/**
+ * Show a short status message inside the availability card.
+ */
+function showScheduleMessage(text, tone = 'info') {
+  const el = document.getElementById('scheduleMessage');
+  if (!el) return;
+  el.className = `schedule-message is-${tone}`;
+  el.textContent = text;
+  if (tone === 'success') {
+    setTimeout(() => {
+      if (el.textContent === text) {
+        el.className = 'schedule-message';
+        el.textContent = '';
+      }
+    }, 4000);
+  }
+}
+
+/* ------------------------------------------------------------------ *
+ * My Schedule — next up
+ * ------------------------------------------------------------------ */
+
+/**
+ * Find the provider's next job and the next request waiting for a reply.
+ */
+function computeNextUp(bookings) {
+  const now = Date.now();
+
+  const upcoming = bookings
+    .filter((b) => b.pickupTime && !Number.isNaN(new Date(b.pickupTime).getTime()))
+    .filter((b) => new Date(b.pickupTime).getTime() >= now)
+    .sort((a, b) => new Date(a.pickupTime).getTime() - new Date(b.pickupTime).getTime());
+
+  return {
+    nextRide: upcoming.find((b) => b.status === BOOKING_STATUS.ACCEPTED) || null,
+    nextPending: upcoming.find((b) => b.status === BOOKING_STATUS.PENDING) || null,
+  };
+}
+
+/**
+ * Render the "Next Up" card.
+ */
+function renderNextUp() {
+  const el = document.getElementById('nextUpContent');
+  if (!el) return;
+
+  const { nextRide, nextPending } = computeNextUp(allBookings);
+
+  if (nextRide) {
+    el.innerHTML = buildNextUpHtml('Next ride', nextRide, 'ride');
+    return;
+  }
+
+  if (nextPending) {
+    el.innerHTML = buildNextUpHtml('Request waiting', nextPending, 'request');
+    return;
+  }
+
+  el.innerHTML = `
+    <div class="next-up-empty">
+      <span class="next-up-empty-title">Nothing scheduled</span>
+      <span class="next-up-empty-desc">New student requests will show up here.</span>
+    </div>
+  `;
+}
+
+function buildNextUpHtml(label, booking, kind) {
+  const name = escapeHtml(booking.studentName || 'Student');
+  const time = escapeHtml(formatPickupTime(booking.pickupTime));
+  const fare = Number(booking.fare) || 0;
+  const telHref = String(booking.studentPhone || '').replace(/[^\d+]/g, '');
+  const bookingId = escapeHtml(booking.id || booking.bookingId || '');
+
+  const action = kind === 'ride'
+    ? (telHref.length >= 6
+        ? `<a class="btn btn-secondary btn-sm" href="tel:${escapeHtml(telHref)}">Call</a>`
+        : `<span class="booking-item-empty-note">No phone number on file</span>`)
+    : `<button type="button" class="btn btn-primary btn-sm" data-booking-action="accept" data-booking-id="${bookingId}">Accept</button>`;
+
+  return `
+    <div class="next-up-badge">${escapeHtml(label)}</div>
+    <div class="next-up-main">
+      <div class="next-up-name">${name}</div>
+      <div class="next-up-meta">🕒 ${time}</div>
+      <div class="next-up-meta">💰 ${fare ? escapeHtml(formatMWK(fare)) : 'Fare on request'}</div>
+    </div>
+    <div class="next-up-actions">${action}</div>
+  `;
+}
+
+/* ------------------------------------------------------------------ *
+ * Standard price stepper
+ * ------------------------------------------------------------------ */
+
+/**
+ * Bump the draft price up or down in 100 MWK steps.
+ */
+function stepPrice(delta) {
+  const next = Math.max(0, priceDraft + delta);
+  if (next === priceDraft) return;
+  priceDraft = next;
+  updatePriceStepUI();
+}
+
+/**
+ * Reflect the draft price in the stat card and mark it dirty.
+ */
+function updatePriceStepUI() {
+  const valueEl = document.getElementById('providerPrice');
+  const saveBtn = document.getElementById('priceSaveBtn');
+  const hintEl = document.getElementById('priceStepHint');
+
+  if (valueEl) valueEl.textContent = formatMWK(priceDraft);
+
+  const saved = providerData && providerData.price !== undefined ? Number(providerData.price) || 0 : 0;
+  const isDirty = priceDraft !== saved;
+
+  if (saveBtn) {
+    saveBtn.disabled = !isDirty;
+    saveBtn.textContent = isDirty ? 'Save Price' : 'Saved';
+  }
+
+  if (hintEl) {
+    hintEl.textContent = isDirty
+      ? `Unsaved — ${formatMWK(saved)} is live now`
+      : '';
+  }
+}
+
+/**
+ * Persist the draft price onto the provider document.
+ */
+async function savePrice() {
+  const saveBtn = document.getElementById('priceSaveBtn');
+  if (saveBtn) saveBtn.disabled = true;
+
+  try {
+    await updateProviderDoc({ price: priceDraft });
+    showScheduleMessage(`Your price is now ${formatMWK(priceDraft)} per trip.`, 'success');
+  } catch (error) {
+    console.error('[Provider Dashboard] Price update failed:', error);
+    showScheduleMessage('Could not save your price. Please try again.', 'danger');
+  } finally {
+    updatePriceStepUI();
+  }
+}
+
+/* ------------------------------------------------------------------ *
+ * Ride requests feed + filters
+ * ------------------------------------------------------------------ */
 
 /**
  * Subscribe to bookings addressed to this provider and keep the UI in sync.
@@ -185,6 +627,47 @@ function startBookingsSubscription() {
 }
 
 /**
+ * Switch the visible slice of the request list.
+ */
+function setBookingFilter(filter) {
+  activeFilter = filter || 'all';
+
+  const buttons = document.querySelectorAll('[data-booking-filter]');
+  buttons.forEach((btn) => {
+    btn.classList.toggle('active', btn.dataset.bookingFilter === activeFilter);
+  });
+
+  renderBookings(allBookings);
+}
+
+/**
+ * Narrow the booking list down to the active filter.
+ */
+function filterBookingsForView(bookings) {
+  const now = Date.now();
+  const startOfToday = new Date();
+  startOfToday.setHours(0, 0, 0, 0);
+  const endOfToday = new Date();
+  endOfToday.setHours(23, 59, 59, 999);
+
+  const isOpen = (b) => b.status === BOOKING_STATUS.PENDING || b.status === BOOKING_STATUS.ACCEPTED;
+  const timeOf = (b) => (b.pickupTime ? new Date(b.pickupTime).getTime() : NaN);
+
+  switch (activeFilter) {
+    case 'upcoming':
+      return bookings.filter((b) => isOpen(b) && timeOf(b) >= now);
+    case 'today':
+      return bookings.filter(
+        (b) => isOpen(b) && timeOf(b) >= startOfToday.getTime() && timeOf(b) <= endOfToday.getTime()
+      );
+    case 'closed':
+      return bookings.filter((b) => !isOpen(b));
+    default:
+      return bookings;
+  }
+}
+
+/**
  * Render the live ride request list.
  * @param {Array<Object>} bookings
  */
@@ -195,30 +678,42 @@ function renderBookings(bookings) {
   const countEl = document.getElementById('providerRequestsCount');
   const noteEl = document.getElementById('providerRequestsNote');
 
+  allBookings = Array.isArray(bookings) ? bookings : [];
+
+  renderNextUp();
+
   if (!listEl) return;
 
-  const pendingCount = bookings.filter(b => b.status === BOOKING_STATUS.PENDING).length;
+  const pendingCount = allBookings.filter((b) => b.status === BOOKING_STATUS.PENDING).length;
+  const visible = filterBookingsForView(allBookings);
 
   // Counters
   if (badgeEl) {
-    badgeEl.textContent = String(bookings.length);
-    badgeEl.classList.toggle('is-zero', bookings.length === 0);
+    badgeEl.textContent = String(visible.length);
+    badgeEl.classList.toggle('is-zero', visible.length === 0);
   }
-  if (countEl) countEl.textContent = String(bookings.length);
+  if (countEl) countEl.textContent = String(pendingCount);
   if (noteEl) {
     noteEl.textContent = pendingCount > 0
-      ? `${pendingCount} awaiting your response`
-      : 'No pending requests';
+      ? `${pendingCount} awaiting your response · ${allBookings.length} total`
+      : `${allBookings.length} total request${allBookings.length === 1 ? '' : 's'} · none pending`;
   }
 
-  if (bookings.length === 0) {
+  if (visible.length === 0) {
     listEl.innerHTML = '';
-    if (emptyEl) emptyEl.style.display = 'block';
+    if (emptyEl) {
+      const copy = EMPTY_STATE_COPY[activeFilter] || EMPTY_STATE_COPY.all;
+      const titleEl = emptyEl.querySelector('.empty-state-title');
+      const descEl = emptyEl.querySelector('.empty-state-desc');
+      if (titleEl) titleEl.textContent = copy.title;
+      if (descEl) descEl.textContent = copy.desc;
+      emptyEl.style.display = 'block';
+    }
     return;
   }
 
   if (emptyEl) emptyEl.style.display = 'none';
-  listEl.innerHTML = bookings.map(createBookingItemHtml).join('');
+  listEl.innerHTML = visible.map(createBookingItemHtml).join('');
 }
 
 /**
@@ -320,6 +815,10 @@ async function handleBookingAction(bookingId, status) {
   }
 }
 
+/* ------------------------------------------------------------------ *
+ * Formatting helpers
+ * ------------------------------------------------------------------ */
+
 /**
  * Format an ISO timestamp for display.
  */
@@ -334,6 +833,54 @@ function formatPickupTime(isoString) {
     hour: '2-digit',
     minute: '2-digit',
   });
+}
+
+/**
+ * Turn a "HH:MM" input into a full ISO timestamp (tomorrow if the time already passed).
+ */
+function resolveBackAtIso(timeStr) {
+  const match = /^(\d{1,2}):(\d{2})$/.exec(String(timeStr || '').trim());
+  if (!match) return null;
+
+  const hours = Number(match[1]);
+  const minutes = Number(match[2]);
+  if (hours > 23 || minutes > 59) return null;
+
+  const target = new Date();
+  target.setHours(hours, minutes, 0, 0);
+  if (target.getTime() <= Date.now()) {
+    target.setDate(target.getDate() + 1);
+  }
+  return target.toISOString();
+}
+
+/**
+ * Format a timestamp as a short clock time (e.g. "3:30 PM").
+ */
+function formatClock(isoString) {
+  const d = new Date(isoString);
+  if (Number.isNaN(d.getTime())) return '—';
+  return d.toLocaleTimeString(undefined, { hour: 'numeric', minute: '2-digit' });
+}
+
+/**
+ * Format a timestamp as the 24h value an <input type="time"> expects.
+ */
+function formatTimeInputValue(isoString) {
+  const d = new Date(isoString);
+  if (Number.isNaN(d.getTime())) return '';
+  return `${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`;
+}
+
+/**
+ * Format a remaining duration as "1h 12m" or "42 min".
+ */
+function formatDuration(ms) {
+  const totalMinutes = Math.max(0, Math.round(ms / 60000));
+  const hours = Math.floor(totalMinutes / 60);
+  const minutes = totalMinutes % 60;
+  if (hours > 0) return `${hours}h ${minutes}m`;
+  return `${minutes} min`;
 }
 
 function escapeHtml(text) {

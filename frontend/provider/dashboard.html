@@ -56,8 +56,14 @@
       <!-- Current Trip Price -->
       <div class="stat-card">
         <span class="stat-label">Standard Price</span>
-        <span class="stat-value" id="providerPrice" style="color: #d97706;">MWK 0</span>
-        <span class="stat-note">Per trip / student</span>
+        <div class="price-stepper">
+          <button type="button" class="price-stepper-btn" id="priceDecBtn" aria-label="Decrease price">−</button>
+          <div class="price-stepper-value" id="providerPrice" style="color: #d97706;">MWK 0</div>
+          <button type="button" class="price-stepper-btn" id="priceIncBtn" aria-label="Increase price">+</button>
+        </div>
+        <button type="button" class="btn btn-secondary btn-sm price-save-btn" id="priceSaveBtn">Save Price</button>
+        <span class="price-stepper-hint" id="priceStepHint"></span>
+        <span class="stat-note">Per trip · +/− 100 MWK</span>
       </div>
 
       <!-- Estimated Waiting Time -->
@@ -69,9 +75,64 @@
 
       <!-- Ride Requests (live) -->
       <div class="stat-card">
-        <span class="stat-label">Ride Requests</span>
+        <span class="stat-label">Pending Requests</span>
         <span class="stat-value" id="providerRequestsCount">0</span>
-        <span class="stat-note" id="providerRequestsNote">No pending requests</span>
+        <span class="stat-note" id="providerRequestsNote">0 total requests · none pending</span>
+      </div>
+    </section>
+
+    <!-- My Schedule -->
+    <section id="scheduleSection">
+      <div class="section-header">
+        <h2 class="section-title">My Schedule</h2>
+        <span class="schedule-hint">Control when students can find you</span>
+      </div>
+
+      <div class="schedule-grid">
+        <!-- Availability -->
+        <div class="schedule-card">
+          <div class="schedule-card-head">
+            <span class="schedule-card-icon">🟢</span>
+            <div>
+              <h3 class="schedule-card-title">Availability</h3>
+              <p class="schedule-card-desc">Turn this off to disappear from student search.</p>
+            </div>
+          </div>
+
+          <div class="availability-row">
+            <label class="toggle-switch" for="availabilityToggle">
+              <input type="checkbox" id="availabilityToggle" checked>
+              <span class="slider"></span>
+            </label>
+            <div class="availability-text">
+              <div class="availability-state" id="availabilityState">Taking rides</div>
+              <div class="availability-substate" id="availabilitySubstate">You are visible to students</div>
+            </div>
+          </div>
+
+          <div class="back-at-row">
+            <label class="back-at-label" for="backAtTime">Back at</label>
+            <input type="time" id="backAtTime" class="form-control back-at-input">
+            <button type="button" id="applyBackAtBtn" class="btn btn-secondary btn-sm">Set</button>
+            <button type="button" id="clearBackAtBtn" class="btn btn-secondary btn-sm">I'm back</button>
+          </div>
+
+          <div class="availability-countdown" id="availabilityCountdown"></div>
+          <div class="schedule-message" id="scheduleMessage"></div>
+        </div>
+
+        <!-- Next Up -->
+        <div class="schedule-card">
+          <div class="schedule-card-head">
+            <span class="schedule-card-icon">⏭️</span>
+            <div>
+              <h3 class="schedule-card-title">Next Up</h3>
+              <p class="schedule-card-desc">Your next job at a glance.</p>
+            </div>
+          </div>
+
+          <div id="nextUpContent" class="next-up-content"></div>
+        </div>
       </div>
     </section>
 
@@ -80,6 +141,13 @@
       <div class="section-header">
         <h2 class="section-title">Ride Requests</h2>
         <span class="booking-count-badge is-zero" id="bookingCountBadge">0</span>
+      </div>
+
+      <div class="booking-filter-bar">
+        <button type="button" class="booking-filter-btn active" data-booking-filter="all">All</button>
+        <button type="button" class="booking-filter-btn" data-booking-filter="upcoming">Upcoming</button>
+        <button type="button" class="booking-filter-btn" data-booking-filter="today">Today</button>
+        <button type="button" class="booking-filter-btn" data-booking-filter="closed">Closed</button>
       </div>
 
       <div id="bookingsList" class="bookings-list"></div>
@@ -118,7 +186,7 @@
           </a>
         </div>
 
-        <!-- My Schedule (Future Module) -->
+        <!-- My Schedule -->
         <div class="action-card">
           <div>
             <div class="action-card-header">
@@ -128,64 +196,18 @@
               </div>
             </div>
             <p class="action-desc">
-              Configure daily operating hours and upcoming campus route departures.
+              Manage availability, set a return time, and see your next ride.
             </p>
           </div>
           <button id="myScheduleBtn" class="btn btn-secondary btn-block">
-            My Schedule
+            Open My Schedule
           </button>
         </div>
 
-        <!-- My Bookings (Live Feature) -->
-        <div class="action-card" style="border-color: #10b981;">
-          <div>
-            <div class="action-card-header">
-              <div class="action-icon accent-green">📋</div>
-              <div>
-                <h3 class="action-title">My Bookings</h3>
-              </div>
-            </div>
-            <p class="action-desc">
-              View ride reservations, accept or decline trip requests from students.
-            </p>
-          </div>
-          <button id="myBookingsBtn" class="btn btn-secondary btn-block">
-            View Ride Requests
-          </button>
-        </div>
-
-        <!-- Update Price (Future Module) -->
-        <div class="action-card">
-          <div>
-            <div class="action-card-header">
-              <div class="action-icon">💰</div>
-              <div>
-                <h3 class="action-title">Update Price</h3>
-              </div>
-            </div>
-            <p class="action-desc">
-              Quickly adjust standard base fare or surcharge during peak campus hours.
-            </p>
-          </div>
-          <button id="updatePriceBtn" class="btn btn-secondary btn-block">
-            Update Price
-          </button>
-        </div>
+      </div>
       </div>
     </section>
   </main>
-
-  <!-- Coming Soon Modal Dialog -->
-  <div id="comingSoonModal" class="modal-overlay" role="dialog" aria-modal="true">
-    <div class="modal-card">
-      <div class="modal-icon">🕒</div>
-      <h3 class="modal-title">Next Module Feature</h3>
-      <p id="modalFeatureText" class="modal-text">This feature will be available in the next module.</p>
-      <button id="closeModalBtn" class="btn btn-primary btn-block">
-        Understood
-      </button>
-    </div>
-  </div>
 
   <footer class="site-footer">
     <p>&copy; 2026 CampusRide Transport Booking App — Provider Portal</p>

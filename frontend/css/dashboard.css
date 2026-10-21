@@ -313,3 +313,264 @@ input:checked + .slider {
 input:checked + .slider:before {
   transform: translateX(24px);
 }
+
+/* ------------------------------------------------------------------ *
+ * Standard price stepper
+ * ------------------------------------------------------------------ */
+
+.price-stepper {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin-top: 0.25rem;
+}
+
+.price-stepper-btn {
+  width: 30px;
+  height: 30px;
+  flex: 0 0 30px;
+  border-radius: 50%;
+  border: 1px solid #cbd5e1;
+  background: #f1f5f9;
+  color: #334155;
+  font-size: 1.1rem;
+  font-weight: 700;
+  line-height: 1;
+  cursor: pointer;
+  transition: var(--transition);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.price-stepper-btn:hover {
+  background: #e2e8f0;
+  color: #0f172a;
+}
+
+.price-stepper-btn:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+.price-stepper-value {
+  font-size: 1.25rem;
+  font-weight: 700;
+  color: var(--text-main);
+  min-width: 96px;
+  text-align: center;
+}
+
+.price-save-btn {
+  align-self: flex-start;
+  margin-top: 0.6rem;
+}
+
+.price-save-btn:disabled {
+  opacity: 0.6;
+  cursor: default;
+}
+
+.price-stepper-hint {
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: #d97706;
+  min-height: 1rem;
+  margin-top: 0.25rem;
+}
+
+/* ------------------------------------------------------------------ *
+ * My Schedule panel
+ * ------------------------------------------------------------------ */
+
+#scheduleSection {
+  scroll-margin-top: 1rem;
+  margin-bottom: 1.5rem;
+}
+
+.schedule-hint {
+  font-size: 0.82rem;
+  color: var(--text-muted);
+}
+
+.schedule-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  gap: 1rem;
+}
+
+.schedule-card {
+  background: var(--card-bg);
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-md);
+  padding: 1.25rem;
+  box-shadow: var(--shadow-sm);
+  display: flex;
+  flex-direction: column;
+  gap: 0.9rem;
+}
+
+.schedule-card-head {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.65rem;
+}
+
+.schedule-card-icon {
+  font-size: 1.35rem;
+  line-height: 1.2;
+}
+
+.schedule-card-title {
+  font-size: 1rem;
+  font-weight: 700;
+  color: var(--text-main);
+  margin: 0;
+}
+
+.schedule-card-desc {
+  font-size: 0.8rem;
+  color: var(--text-muted);
+  margin: 0.15rem 0 0;
+}
+
+.availability-row {
+  display: flex;
+  align-items: center;
+  gap: 0.85rem;
+}
+
+.availability-text {
+  min-width: 0;
+}
+
+.availability-state {
+  font-size: 0.95rem;
+  font-weight: 600;
+  color: var(--text-main);
+}
+
+.availability-substate {
+  font-size: 0.78rem;
+  color: var(--text-muted);
+}
+
+.back-at-row {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+  padding-top: 0.75rem;
+  border-top: 1px dashed var(--border-color);
+}
+
+.back-at-label {
+  font-size: 0.78rem;
+  font-weight: 700;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.back-at-input {
+  width: auto;
+  min-width: 120px;
+  padding: 0.35rem 0.5rem;
+  font-size: 0.85rem;
+}
+
+.availability-countdown {
+  font-size: 0.85rem;
+  font-weight: 700;
+  color: var(--warning, #d97706);
+  min-height: 1.2rem;
+}
+
+.availability-countdown.is-active {
+  animation: countdown-pulse 2s ease-in-out infinite;
+}
+
+@keyframes countdown-pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.55; }
+}
+
+.schedule-message {
+  font-size: 0.8rem;
+  font-weight: 600;
+  min-height: 1rem;
+  color: var(--text-muted);
+}
+
+.schedule-message.is-success {
+  color: var(--success, #059669);
+}
+
+.schedule-message.is-danger {
+  color: #dc2626;
+}
+
+/* Next up card */
+
+.next-up-content {
+  display: flex;
+  flex-direction: column;
+  gap: 0.65rem;
+  flex: 1;
+}
+
+.next-up-badge {
+  align-self: flex-start;
+  background: #ecfdf5;
+  color: #047857;
+  border: 1px solid #a7f3d0;
+  font-size: 0.72rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  padding: 0.2rem 0.6rem;
+  border-radius: 9999px;
+}
+
+.next-up-name {
+  font-size: 1.05rem;
+  font-weight: 700;
+  color: var(--text-main);
+}
+
+.next-up-meta {
+  font-size: 0.85rem;
+  color: var(--text-muted);
+}
+
+.next-up-actions {
+  margin-top: auto;
+  display: flex;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+}
+
+.next-up-empty {
+  display: flex;
+  flex-direction: column;
+  gap: 0.2rem;
+  padding: 0.75rem 0;
+}
+
+.next-up-empty-title {
+  font-size: 0.95rem;
+  font-weight: 600;
+  color: var(--text-muted);
+}
+
+.next-up-empty-desc {
+  font-size: 0.8rem;
+  color: var(--text-muted);
+  opacity: 0.8;
+}
+
+@media (max-width: 480px) {
+  .back-at-input {
+    width: 100%;
+  }
+}

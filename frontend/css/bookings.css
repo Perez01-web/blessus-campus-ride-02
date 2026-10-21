@@ -381,3 +381,38 @@
     gap: 0.35rem;
   }
 }
+
+/* ------------------------------------------------------------------ *
+ * Ride request filter tabs
+ * ------------------------------------------------------------------ */
+
+.booking-filter-bar {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+  margin-bottom: 1rem;
+}
+
+.booking-filter-btn {
+  background: #f1f5f9;
+  border: 1px solid #cbd5e1;
+  color: #334155;
+  font-size: 0.82rem;
+  font-weight: 600;
+  padding: 0.35rem 0.85rem;
+  border-radius: 9999px;
+  cursor: pointer;
+  transition: var(--transition);
+}
+
+.booking-filter-btn:hover {
+  background: #e2e8f0;
+  color: #0f172a;
+}
+
+.booking-filter-btn.active {
+  background: var(--primary, #2563eb);
+  border-color: var(--primary, #2563eb);
+  color: #ffffff;
+}
