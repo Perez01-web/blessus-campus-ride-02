@@ -143,15 +143,14 @@ class ProviderService {
       try {
         const query = firestoreDb.collection('providers');
         const snapshot = await query.get();
-        const nowFs = Date.now();
 
         snapshot.forEach(docSnap => {
           const pData = docSnap.data();
-          // Filter by availability (respect the auto-reappear after 'back at')
+          // Filter by availability: a provider with a "back at" time stays
+          // listed (students see them as away), everyone else is hidden.
           if (pData.available === false) {
             const untilMs = pData.availableUntil ? new Date(pData.availableUntil).getTime() : NaN;
-            const autoBack = !Number.isNaN(untilMs) && untilMs <= nowFs;
-            if (!autoBack) {
+            if (Number.isNaN(untilMs)) {
               return;
             }
           }
@@ -169,12 +168,10 @@ class ProviderService {
     }
 
     // 2. Query in-memory providers
-    const nowMem = Date.now();
     for (const [id, provider] of memoryProviders.entries()) {
       if (provider.available === false) {
         const untilMs = provider.availableUntil ? new Date(provider.availableUntil).getTime() : NaN;
-        const autoBack = !Number.isNaN(untilMs) && untilMs <= nowMem;
-        if (!autoBack) {
+        if (Number.isNaN(untilMs)) {
           continue;
         }
       }

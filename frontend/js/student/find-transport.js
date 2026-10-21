@@ -175,6 +175,41 @@ function toTelHref(phone) {
 }
 
 /**
+ * Work out how a provider should be presented to students.
+ *
+ * - 'available' : bookable right now
+ * - 'away'      : temporarily away with a known return time ("Back at 8:18 PM")
+ */
+function getProviderAvailability(provider) {
+  if (!provider || provider.available !== false) {
+    return { state: 'available', label: 'Available', pillClass: 'status-available', until: null };
+  }
+
+  const until = provider.availableUntil || null;
+  const untilMs = until ? new Date(until).getTime() : NaN;
+
+  if (!Number.isNaN(untilMs) && untilMs > Date.now()) {
+    return {
+      state: 'away',
+      label: `Back at ${formatClockTime(until)}`,
+      pillClass: 'status-away',
+      until,
+    };
+  }
+
+  return { state: 'available', label: 'Available', pillClass: 'status-available', until: null };
+}
+
+/**
+ * Format a timestamp as a short clock time (e.g. "8:18 PM").
+ */
+function formatClockTime(isoString) {
+  const d = new Date(isoString);
+  if (Number.isNaN(d.getTime())) return '—';
+  return d.toLocaleTimeString(undefined, { hour: 'numeric', minute: '2-digit' });
+}
+
+/**
  * Generate card HTML for a driver
  */
 function createProviderCardHtml(provider) {
@@ -194,6 +229,9 @@ function createProviderCardHtml(provider) {
   const phone = provider.phone || 'Contact via app';
   const telHref = toTelHref(provider.phone);
 
+  const availability = getProviderAvailability(provider);
+  const isAway = availability.state === 'away';
+
   const callButton = telHref
     ? `<a class="provider-call-btn" href="tel:${escapeHtml(telHref)}"
              title="Call ${escapeHtml(displayName)}" aria-label="Call ${escapeHtml(displayName)}">
@@ -204,14 +242,27 @@ function createProviderCardHtml(provider) {
          ${PHONE_ICON}
        </span>`;
 
+  const bookButton = isAway
+    ? `<button type="button" class="provider-book-btn" disabled
+             title="This driver is back at ${escapeHtml(formatClockTime(availability.until))}. Please check back then.">
+         Back soon
+       </button>`
+    : `<button type="button" class="provider-book-btn" data-provider-id="${escapeHtml(providerId)}">
+         Book
+       </button>`;
+
+  const awayNote = isAway
+    ? `<p class="provider-away-note">⏳ Away right now — back at ${escapeHtml(formatClockTime(availability.until))}</p>`
+    : '';
+
   return `
-    <div class="provider-card" data-provider-id="${escapeHtml(providerId)}">
+    <div class="provider-card${isAway ? ' is-away' : ''}" data-provider-id="${escapeHtml(providerId)}">
       <div>
         <div class="provider-card-top">
           <div class="provider-avatar ${typeClass}">
             ${avatarEmoji}
           </div>
-          <span class="status-pill status-available">Available</span>
+          <span class="status-pill ${availability.pillClass}">${escapeHtml(availability.label)}</span>
         </div>
 
         <h3 class="provider-name">${escapeHtml(displayName)}</h3>
@@ -235,12 +286,12 @@ function createProviderCardHtml(provider) {
             <span><strong>Contact:</strong> ${escapeHtml(phone)}</span>
           </li>
         </ul>
+
+        ${awayNote}
       </div>
 
       <div class="provider-card-actions">
-        <button type="button" class="provider-book-btn" data-provider-id="${escapeHtml(providerId)}">
-          Book
-        </button>
+        ${bookButton}
         ${callButton}
       </div>
     </div>
@@ -285,6 +336,15 @@ function openBookingModal(providerId) {
 
   if (!provider) {
     showAlert('alertBox', 'That driver is no longer available. Please refresh the list.');
+    return;
+  }
+
+  const availability = getProviderAvailability(provider);
+  if (availability.state === 'away') {
+    showAlert(
+      'alertBox',
+      `${provider.name || 'This driver'} is away until ${formatClockTime(availability.until)}. Please check back then.`
+    );
     return;
   }
 

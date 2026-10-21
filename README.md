@@ -40,7 +40,7 @@ transport-booking-app/
 │   │   │   ├── firestore-service.js     # Direct client-side Firestore reads
 │   │   │   ├── bookings-service.js      # Firestore booking CRUD & live subscriptions
 │   │   │   ├── student-dashboard.js     # Student dashboard, live My Bookings list & cancel
-│   │   │   ├── provider-dashboard.js    # Provider dashboard, live ride request feed & actions
+│   │   │   ├── provider-dashboard.js    # Provider dashboard, My Schedule, live ride request feed & actions
 │   │   │   ├── provider-profile.js      # Provider profile editing & Firestore synchronization
 │   │   │   ├── student/
 │   │   │   │   └── find-transport.js    # Driver cards, Book/Call actions & booking submission
@@ -134,10 +134,15 @@ Both feeds query on a **single field** (`providerId` / `studentId`) and sort cli
   "price": 5000,
   "estimatedWaitTime": 10,
   "available": true,
+  "availableUntil": null,
   "createdAt": "2026-10-08T00:00:00.000Z",
   "updatedAt": "2026-10-08T00:00:00.000Z"
 }
 ```
+
+* `available` is the driver's live on/off switch. `false` with **no** `availableUntil` hides the driver from student search completely.
+* `availableUntil` is the ISO timestamp of the "back at" time the driver set. While it is in the future the driver stays visible in student search with a **Back at** badge and cannot be booked; once it passes, the driver is bookable again and their dashboard flips `available` back to `true` automatically.
+* `null` means "no return time set".
 
 ### Collection: `bookings/{bookingId}`
 ```json
@@ -179,6 +184,8 @@ Each driver card ends with two actions instead of a price tag:
 
 The trip fare was moved into the card's details list so the price stays visible now that the footer holds the buttons.
 
+The status badge on each card reflects the driver's **real** availability, not a hardcoded "Available" — see [What students see](#what-students-see) in the My Schedule section below.
+
 ### Provider side — Live Ride Requests
 
 The provider dashboard has a **Ride Requests** section driven by a Firestore `onSnapshot` listener. A new booking appears the moment a student confirms it, showing the student, the exact pickup time, the fare and a Call button for the student. From there the provider can:
@@ -187,7 +194,7 @@ The provider dashboard has a **Ride Requests** section driven by a Firestore `on
 * **Decline** → `rejected`
 * **Mark Completed** → `completed`
 
-The dashboard also carries a live request counter in its stats row.
+The **Pending Requests** stat card leads with the number of requests still waiting for a reply, with the lifetime total underneath.
 
 ### Student side — My Bookings
 
@@ -195,7 +202,48 @@ The "My Bookings" card on the student dashboard opens a modal with a live list o
 
 ---
 
-## 5. How to Configure Firebase
+## 5. The My Schedule Module (provider portal)
+
+Everything a driver needs to run their day sits in one section of the provider dashboard. No new page, no new collection — it reuses the two fields already on the provider document (`available` and `availableUntil`).
+
+### Availability card
+
+| Control | What it does |
+| --- | --- |
+| **Availability toggle** | Flips `available` on or off. Off with no return time hides the driver from student search entirely. |
+| **Back at** *(time picker + Apply)* | Sets `available: false` with `availableUntil`. The driver stays visible to students as **Back at 8:18 PM** but cannot be booked until they are back. |
+| **I'm back** | Clears the timer immediately and puts the driver back on the map. |
+| **Countdown** | Ticks every second until the return time, then writes `available: true` and clears `availableUntil` automatically. |
+
+The same self-healing happens on page load, so a driver who closed the tab overnight still comes back online the moment they return.
+
+### Next up card
+
+Shows the driver's next **accepted** ride (with a Call button) or, failing that, the next **request waiting** for a reply (with an Accept button).
+
+### Ride request filters
+
+The live request feed can be sliced with four tabs — **All**, **Upcoming**, **Today** and **Closed** — each with its own count badge and empty-state copy.
+
+### Overlap warning
+
+If a pending request lands within **30 minutes** of a ride the driver has already accepted, the request is flagged with an amber marker and an explicit *"you already have a ride at …"* line. The **Next up** card shows the same warning from the other side, so a clash is visible before the driver accepts anything.
+
+### Inline price stepper
+
+The **Standard Price** stat card carries its own `−` / `+` stepper that moves the fare in **100 MWK** steps. The button stays disabled until the value actually differs from the saved price, and the card shows *"Unsaved — MWK 5,000 is live now"* while there is a pending change. There is no separate price page or modal.
+
+### What students see
+
+| Driver state | Student card |
+| --- | --- |
+| `available: true` | Green **Available** badge, **Book** enabled. |
+| `available: false` + future `availableUntil` | Amber **Back at 8:18 PM** badge, **Back soon** button disabled, plus an *"Away right now — back at 8:18 PM"* note. |
+| `available: false`, no `availableUntil` | Not listed at all. |
+
+---
+
+## 6. How to Configure Firebase
 
 ### Frontend (Client SDK)
 Open `frontend/js/firebase-config.js` and paste your Firebase Web App configuration from the Firebase Console (*Project Settings > General > Your apps*):
@@ -245,7 +293,7 @@ The `bookings` rules are deliberately tight:
 
 ---
 
-## 6. Running the Application
+## 7. Running the Application
 
 1. **Install dependencies:**
    ```bash
@@ -262,7 +310,7 @@ The `bookings` rules are deliberately tight:
 
 ---
 
-## 7. MVP 2 Status
+## 8. MVP Status
 
-* **Status:** Module 2 Complete — provider discovery and live ride booking
+* **Status:** Module 2 Complete — provider discovery, live ride booking and the My Schedule module
 * **Next Module:** Module 3 — trip execution, in-trip tracking and ratings

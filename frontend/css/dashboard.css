@@ -86,11 +86,25 @@
   display: inline-block;
 }
 
+/* Temporarily away - the provider said when they will be back */
+.status-away {
+  background: #fef3c7;
+  color: #92400e;
+}
+
+.status-away::before {
+  content: "";
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background-color: #d97706;
+  display: inline-block;
+}
+
 .status-unavailable {
   background: var(--danger-bg);
   color: #991b1b;
 }
-
 .status-unavailable::before {
   content: "";
   width: 8px;
@@ -541,6 +555,16 @@ input:checked + .slider:before {
 .next-up-meta {
   font-size: 0.85rem;
   color: var(--text-muted);
+}
+
+.next-up-overlap {
+  margin-top: 0.35rem;
+  padding: 0.35rem 0.6rem;
+  border-radius: var(--radius-md);
+  background: #fef3c7;
+  color: #92400e;
+  font-size: 0.78rem;
+  font-weight: 600;
 }
 
 .next-up-actions {

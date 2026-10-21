@@ -31,13 +31,14 @@ export const firestoreService = {
       const snapshot = await getDocs(q);
       const providers = [];
       
-      const now = Date.now();
       snapshot.forEach((docSnap) => {
         const data = docSnap.data();
         if (data.available === false) {
+          // A provider who set a "back at" time stays visible so students can
+          // see when they are back. A plain toggle-off has no return time, so
+          // that provider is hidden from search entirely.
           const untilMs = data.availableUntil ? new Date(data.availableUntil).getTime() : NaN;
-          const autoBack = !Number.isNaN(untilMs) && untilMs <= now;
-          if (!autoBack) {
+          if (Number.isNaN(untilMs)) {
             return;
           }
         }

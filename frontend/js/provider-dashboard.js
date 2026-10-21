@@ -28,6 +28,11 @@ let priceDraft = 0;
 
 const PRICE_STEP = 100;
 
+/**
+ * Two pickup times closer than this are treated as clashing.
+ */
+const OVERLAP_WINDOW_MS = 30 * 60 * 1000;
+
 const EMPTY_STATE_COPY = {
   all: {
     title: 'No ride requests yet',
@@ -273,6 +278,8 @@ function renderAvailability() {
       substateEl.textContent = 'Complete your provider profile to manage availability';
     } else if (state.mode === 'available') {
       substateEl.textContent = 'Students can find and book you';
+    } else if (state.mode === 'paused') {
+      substateEl.textContent = `Students see you as away until ${formatClock(state.until)}`;
     } else {
       substateEl.textContent = 'You are hidden from student search';
     }
@@ -373,7 +380,10 @@ async function handleSetBackAt() {
 
   try {
     await updateProviderDoc({ available: false, availableUntil: iso });
-    showScheduleMessage(`Hidden from students until ${formatClock(iso)}.`, 'success');
+    showScheduleMessage(
+      `Students see you as "Back at ${formatClock(iso)}". Bookings reopen then.`,
+      'success'
+    );
   } catch (error) {
     console.error('[Provider Dashboard] Back-at update failed:', error);
     showScheduleMessage('Could not set your return time. Please try again.', 'danger');
@@ -498,12 +508,22 @@ function renderNextUp() {
   const { nextRide, nextPending } = computeNextUp(allBookings);
 
   if (nextRide) {
-    el.innerHTML = buildNextUpHtml('Next ride', nextRide, 'ride');
+    el.innerHTML = buildNextUpHtml(
+      'Next ride',
+      nextRide,
+      'ride',
+      findClash(nextRide, allBookings, [BOOKING_STATUS.PENDING])
+    );
     return;
   }
 
   if (nextPending) {
-    el.innerHTML = buildNextUpHtml('Request waiting', nextPending, 'request');
+    el.innerHTML = buildNextUpHtml(
+      'Request waiting',
+      nextPending,
+      'request',
+      findClash(nextPending, allBookings, [BOOKING_STATUS.ACCEPTED])
+    );
     return;
   }
 
@@ -515,7 +535,7 @@ function renderNextUp() {
   `;
 }
 
-function buildNextUpHtml(label, booking, kind) {
+function buildNextUpHtml(label, booking, kind, overlap) {
   const name = escapeHtml(booking.studentName || 'Student');
   const time = escapeHtml(formatPickupTime(booking.pickupTime));
   const fare = Number(booking.fare) || 0;
@@ -528,12 +548,19 @@ function buildNextUpHtml(label, booking, kind) {
         : `<span class="booking-item-empty-note">No phone number on file</span>`)
     : `<button type="button" class="btn btn-primary btn-sm" data-booking-action="accept" data-booking-id="${bookingId}">Accept</button>`;
 
+  const overlapNote = overlap
+    ? (kind === 'ride'
+        ? `<div class="next-up-overlap">⚠️ A request at ${escapeHtml(formatOverlapTime(overlap.pickupTime))} clashes with this ride</div>`
+        : `<div class="next-up-overlap">⚠️ Clashes with your ride at ${escapeHtml(formatOverlapTime(overlap.pickupTime))}</div>`)
+    : '';
+
   return `
     <div class="next-up-badge">${escapeHtml(label)}</div>
     <div class="next-up-main">
       <div class="next-up-name">${name}</div>
       <div class="next-up-meta">🕒 ${time}</div>
       <div class="next-up-meta">💰 ${fare ? escapeHtml(formatMWK(fare)) : 'Fare on request'}</div>
+      ${overlapNote}
     </div>
     <div class="next-up-actions">${action}</div>
   `;
@@ -713,13 +740,51 @@ function renderBookings(bookings) {
   }
 
   if (emptyEl) emptyEl.style.display = 'none';
-  listEl.innerHTML = visible.map(createBookingItemHtml).join('');
+  listEl.innerHTML = visible
+    .map((b) =>
+      createBookingItemHtml(
+        b,
+        b.status === BOOKING_STATUS.PENDING
+          ? findClash(b, allBookings, [BOOKING_STATUS.ACCEPTED])
+          : null
+      )
+    )
+    .join('');
+}
+
+/**
+ * Look for a clash: another booking of one of the given statuses that lands
+ * within the overlap window of the booking being checked.
+ * @param {Object} booking - The booking to check
+ * @param {Array<Object>} bookings - Every booking for this provider
+ * @param {Array<string>} clashStatuses - Statuses that count as a clash
+ * @returns {Object|null} The clashing booking, if any
+ */
+function findClash(booking, bookings, clashStatuses) {
+  if (!booking || !booking.pickupTime) return null;
+
+  const time = new Date(booking.pickupTime).getTime();
+  if (Number.isNaN(time)) return null;
+
+  for (const other of bookings) {
+    if (!other || other.id === booking.id) continue;
+    if (!clashStatuses.includes(other.status)) continue;
+
+    const otherTime = new Date(other.pickupTime).getTime();
+    if (Number.isNaN(otherTime)) continue;
+
+    if (Math.abs(otherTime - time) <= OVERLAP_WINDOW_MS) {
+      return other;
+    }
+  }
+
+  return null;
 }
 
 /**
  * Build the HTML for a single ride request card.
  */
-function createBookingItemHtml(booking) {
+function createBookingItemHtml(booking, overlap) {
   const status = booking.status || BOOKING_STATUS.PENDING;
   const statusLabel = {
     [BOOKING_STATUS.PENDING]: 'Pending',
@@ -736,6 +801,13 @@ function createBookingItemHtml(booking) {
   const studentName = escapeHtml(booking.studentName || 'Student');
   const studentPhone = escapeHtml(booking.studentPhone || '');
   const telHref = String(booking.studentPhone || '').replace(/[^\d+]/g, '');
+
+  const overlapRow = overlap
+    ? `<li class="booking-detail-item booking-overlap-warning">
+         <span>⚠️</span>
+         <strong>Clashes:</strong> you already have a ride at ${escapeHtml(formatOverlapTime(overlap.pickupTime))}
+       </li>`
+    : '';
 
   let actions = '';
   if (status === BOOKING_STATUS.PENDING) {
@@ -760,7 +832,7 @@ function createBookingItemHtml(booking) {
   }
 
   return `
-    <div class="booking-item is-${escapeHtml(status)}" data-booking-id="${escapeHtml(booking.id || booking.bookingId || '')}">
+    <div class="booking-item is-${escapeHtml(status)}${overlap ? ' has-overlap' : ''}" data-booking-id="${escapeHtml(booking.id || booking.bookingId || '')}">
       <div class="booking-item-top">
         <h3 class="booking-student-name">${studentName}</h3>
         <span class="booking-status status-${escapeHtml(status)}">${escapeHtml(statusLabel)}</span>
@@ -772,6 +844,7 @@ function createBookingItemHtml(booking) {
           <strong>Pickup:</strong> ${escapeHtml(pickupLabel)}
           ${isPast && status !== BOOKING_STATUS.COMPLETED ? '<span class="booking-status status-cancelled">Time passed</span>' : ''}
         </li>
+        ${overlapRow}
         <li class="booking-detail-item">
           <span>💰</span>
           <strong>Fare:</strong> ${escapeHtml(fare ? formatMWK(fare) : 'Fare on request')}
@@ -831,6 +904,21 @@ function formatPickupTime(isoString) {
     month: 'short',
     year: 'numeric',
     hour: '2-digit',
+    minute: '2-digit',
+  });
+}
+
+/**
+ * Format a timestamp as a compact date + time (e.g. "Wed, 21 Oct, 8:30 PM").
+ */
+function formatOverlapTime(isoString) {
+  const d = new Date(isoString);
+  if (Number.isNaN(d.getTime())) return '—';
+  return d.toLocaleString(undefined, {
+    weekday: 'short',
+    day: 'numeric',
+    month: 'short',
+    hour: 'numeric',
     minute: '2-digit',
   });
 }

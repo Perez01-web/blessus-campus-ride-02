@@ -260,6 +260,20 @@
   opacity: 0.78;
 }
 
+/* Pending request that clashes with a ride already accepted */
+.booking-item.has-overlap {
+  border-left-color: #d97706;
+}
+
+.booking-overlap-warning {
+  color: #92400e;
+  font-weight: 600;
+}
+
+.booking-overlap-warning strong {
+  color: #92400e !important;
+}
+
 .booking-item-top {
   display: flex;
   align-items: center;
